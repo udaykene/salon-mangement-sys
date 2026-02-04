@@ -1,24 +1,29 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const cookieparser = require("cookie-parser");
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+
+import AuthRouter from "./src/routes/AuthRouter.js";
+import "./src/db/index.js";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-const AuthRouter = require('./src/routes/AuthRouter.js')
-require("./src/db/index.js");
+// Change your CORS config to this:
+// app.use(cors({
+//   origin: ["http://localhost:3000", "http://127.0.0.1:5173"], 
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Added OPTIONS explicitly
+//   allowedHeaders: ["Content-Type", "Authorization"]
+// }));
 
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true }));
 
-app.use(cors({
-    origin:process.env.CORS_ORIGIN,
-    Credentials:true,
-})) // This middleware is used to share cross origin data from two different ports
+app.use(express.static("public"));
+app.use(cookieParser());
 
-app.use(express.json({limit:"16kb"})) // this accept the json data in the app {limit defines the size of data you accept} 
-app.use(express.urlencoded({extended:true})) // this defines the data coming from url is encoded {extended defines it can pass objects also }
+app.use("/auth", AuthRouter);
 
-app.use(express.static('public')) // this helps in defining the public folder where all static files can be stored
-app.use(cookieparser()) // This helps in parsing cookies 
-app.use('/auth',AuthRouter)
 app.get("/ping", (req, res) => {
   res.send("PONG");
 });
