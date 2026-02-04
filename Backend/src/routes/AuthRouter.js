@@ -1,6 +1,9 @@
 import express from "express";
 import Owner from "../models/owner.model.js";
-import { SignUpValidation, LoginValidation } from "../middlewares/AuthValidation.js";
+import {
+  SignUpValidation,
+  LoginValidation,
+} from "../middlewares/AuthValidation.js";
 
 const router = express.Router();
 
@@ -19,13 +22,13 @@ router.post("/register", SignUpValidation, async (req, res) => {
       phone,
       password,
     });
-
+    // 🔥 AUTO LOGIN
+    req.session.ownerId = owner._id;
     res.status(201).json({
       success: true,
-      message: "Owner registered successfully",
+      message: "Owner registered & LOgged in ",
       owner,
     });
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -45,7 +48,6 @@ router.post("/login", LoginValidation, async (req, res) => {
       message: "Login successful",
       owner,
     });
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
