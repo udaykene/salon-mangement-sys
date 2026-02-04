@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Certifications from "../components/Certifications";
 import axios from "axios";
 
 const SalonRegister = () => {
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,6 +39,7 @@ const SalonRegister = () => {
       alert(res.data.message);
       // Optional: Redirect to login after success
       // navigate('/login');
+      navigate("/admin/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Registration failed");
     }
