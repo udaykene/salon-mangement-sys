@@ -31,6 +31,7 @@ import AdminOffers from "./pages/AdminOffers";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings.jsx";
 import RegistrationPage from "./pages/RegistrationPage.jsx";
+import AdminBranches from './pages/AdminBranches';
 const App = () => {
   const location = useLocation();
 
@@ -62,6 +63,7 @@ const App = () => {
           <Route path="/admin/clients" element={<AdminClients />} />
           <Route path="/admin/services" element={<AdminServices />} />
           <Route path="/admin/staff" element={<AdminStaff />} />
+          <Route path="/admin/branches" element={<AdminBranches />} />
           <Route
             path="/admin/revenue-reports"
             element={<AdminRevenueReports />}

@@ -18,6 +18,7 @@ const AdminSidebar = () => {
     },
     { title: "Clients", icon: "ri-user-heart-line", path: "/admin/clients" },
     { title: "Services", icon: "ri-scissors-2-line", path: "/admin/services" },
+    { title: "Branches", icon: "ri-store-2-line", path: "/admin/branches" },
     { title: "Staff", icon: "ri-team-line", path: "/admin/staff" },
     { title: "Offers", icon: "ri-gift-line", path: "/admin/offers" },
     { title: "Inbox", icon: "ri-mail-line", path: "/admin/inbox" },
@@ -35,6 +36,7 @@ const AdminSidebar = () => {
     <div className="flex flex-col h-full">
       {/* Logo Section */}
       <div className="p-6 border-b border-gray-200">
+        <Link to="/">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/30 hover:shadow-rose-500/50 transition-all">
             <span className="text-white text-xl">✨</span>
@@ -44,6 +46,7 @@ const AdminSidebar = () => {
             <p className="text-xs text-gray-500">Skin & Soul Studio</p>
           </div>
         </div>
+        </Link>
       </div>
 
       {/* Navigation Menu */}

@@ -43,6 +43,8 @@ router.post("/login", LoginValidation, async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // 🔥 create session (same as signup)
+    req.session.ownerId = owner._id;
     res.json({
       success: true,
       message: "Login successful",
@@ -51,6 +53,19 @@ router.post("/login", LoginValidation, async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+router.get("/me", (req, res) => {
+  if (!req.session.ownerId) {
+    return res.json({ loggedIn: false });
+  }
+  res.json({ loggedIn: true });
+});
+
+router.post("/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ message: "Logged out" });
+  });
 });
 
 export default router;
