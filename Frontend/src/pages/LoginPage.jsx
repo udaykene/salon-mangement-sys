@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Certifications from "../components/Certifications";
-
+import axios from "axios";
 const LoginPage = () => {
+  const navigate = useNavigate();
+
   const [showPassword, setShowPassword] = useState(false);
   const [loginType, setLoginType] = useState("owner"); // 'owner' or 'staff'
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -12,21 +15,32 @@ const LoginPage = () => {
     rememberMe: false,
   });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
     if (loginType === "owner") {
-      console.log("Owner Login submitted:", {
-        email: formData.email,
-        password: formData.password,
-        rememberMe: formData.rememberMe,
-      });
+      const res = await axios.post(
+        "/auth/login",
+        {
+          email: formData.email,
+          password: formData.password,
+        },
+        { withCredentials: true }
+      );
+
+      alert(res.data.message);
+      navigate("/admin/dashboard");
+
     } else {
-      console.log("Staff Login submitted:", {
-        phone: formData.phone,
-        rememberMe: formData.rememberMe,
-      });
+      alert("Staff login will be added later");
     }
-  };
+
+  } catch (err) {
+    alert(err.response?.data?.message || "Login failed");
+  }
+};
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
