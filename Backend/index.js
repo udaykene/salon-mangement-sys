@@ -16,17 +16,16 @@ const PORT = process.env.PORT || 3000;
 //   allowedHeaders: ["Content-Type", "Authorization"]
 // }));
 
-app.use(
-  session({
-    secret: "salon_secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: false, // true only with HTTPS
-    },
-  }),
-);
+app.use(session({
+  secret: 'salon_secret', // Use a strong secret in production
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // Set to true if using HTTPS
+    httpOnly: true, 
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true }));
 

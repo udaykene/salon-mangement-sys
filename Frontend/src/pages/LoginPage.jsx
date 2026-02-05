@@ -21,7 +21,7 @@ const LoginPage = () => {
   try {
     if (loginType === "owner") {
       const res = await axios.post(
-        "auth/login",
+        "/auth/login",
         {
           email: formData.email,
           password: formData.password,
