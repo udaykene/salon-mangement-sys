@@ -112,9 +112,20 @@ const Navbar = () => {
           )}
 
           {/* Desktop Right Section */}
+          {/* Desktop Right Section */}
           {isDesktop && (
             <div className="flex items-center gap-3">
-              {isLoggedIn ? (
+              {!isLoggedIn ? (
+                /* Get Started Button (when NOT logged in) */
+                <Link
+                  to="/login"
+                  className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-full shadow-md shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 transition-all flex items-center gap-2"
+                >
+                  Get Started
+                  <i className="ri-arrow-right-line"></i>
+                </Link>
+              ) : (
+                /* Everything after LOGIN */
                 <>
                   <Link
                     to="/admin/dashboard"
@@ -122,6 +133,8 @@ const Navbar = () => {
                   >
                     Dashboard
                   </Link>
+
+                  {/* Switch Branch Button */}
                   <div className="relative">
                     <button
                       onClick={() => setBranchDropdownOpen((o) => !o)}
@@ -137,7 +150,6 @@ const Navbar = () => {
 
                     {branchDropdownOpen && (
                       <div className="absolute right-0 mt-3 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[200px] overflow-hidden z-50">
-                        {/* Example branches (replace with real data later) */}
                         <button className="w-full text-left px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all">
                           Main Branch
                         </button>
@@ -150,74 +162,63 @@ const Navbar = () => {
                       </div>
                     )}
                   </div>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/login"
-                    className="text-gray-700 hover:text-rose-600 transition-colors font-medium px-3 py-2"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-full shadow-md shadow-rose-500/30 transition-all"
-                  >
-                    Owner Signup
-                  </Link>
-                </>
-              )}
 
-              {/* Profile Dropdown */}
-              <div className="relative flex items-center">
-                <button
-                  ref={buttonRef}
-                  className="flex items-center gap-1 px-2 py-2 rounded-full hover:bg-rose-50 transition-all outline-none group"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  type="button"
-                >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 border-2 border-rose-200 group-hover:border-rose-300 transition-all">
-                    <i className="ri-user-3-fill text-lg"></i>
-                  </div>
-                  <i
-                    className={`ri-arrow-down-s-line text-gray-600 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
-                  ></i>
-                </button>
-
-                {dropdownOpen && (
-                  <div
-                    ref={dropdownRef}
-                    className="absolute top-[55px] right-0 flex flex-col bg-white min-w-[180px] shadow-2xl rounded-xl border border-gray-100 overflow-hidden z-[999]"
-                  >
-                    <Link
-                      to="/activity"
-                      className="px-5 py-3 hover:bg-rose-50 hover:text-rose-600 border-b border-gray-100 transition-all flex items-center gap-3"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <i className="ri-calendar-check-line"></i>{" "}
-                      <span>My Activity</span>
-                    </Link>
+                  {/* Profile Dropdown (unchanged) */}
+                  <div className="relative flex items-center">
                     <button
-                      onClick={() => {
-                        handleLogout();
-                        setDropdownOpen(false);
-                      }}
-                      className="px-5 py-3 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-600 border-b border-gray-100 transition-all flex items-center gap-3 text-left"
+                      ref={buttonRef}
+                      className="flex items-center gap-1 px-2 py-2 rounded-full hover:bg-rose-50 transition-all outline-none group"
+                      onClick={() => setDropdownOpen(!dropdownOpen)}
+                      type="button"
                     >
-                      <i className="ri-logout-box-line"></i>
-                      <span>Logout</span>
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 border-2 border-rose-200 group-hover:border-rose-300 transition-all">
+                        <i className="ri-user-3-fill text-lg"></i>
+                      </div>
+                      <i
+                        className={`ri-arrow-down-s-line text-gray-600 transition-transform ${
+                          dropdownOpen ? "rotate-180" : ""
+                        }`}
+                      ></i>
                     </button>
 
-                    <Link
-                      to="/profile"
-                      className="px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all flex items-center gap-3"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      <i className="ri-user-line"></i> <span>View Profile</span>
-                    </Link>
+                    {dropdownOpen && (
+                      <div
+                        ref={dropdownRef}
+                        className="absolute top-[55px] right-0 flex flex-col bg-white min-w-[180px] shadow-2xl rounded-xl border border-gray-100 overflow-hidden z-[999]"
+                      >
+                        <Link
+                          to="/activity"
+                          className="px-5 py-3 hover:bg-rose-50 hover:text-rose-600 border-b border-gray-100 transition-all flex items-center gap-3"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <i className="ri-calendar-check-line"></i>
+                          <span>My Activity</span>
+                        </Link>
+
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setDropdownOpen(false);
+                          }}
+                          className="px-5 py-3 hover:bg-gradient-to-r hover:from-rose-50 hover:to-pink-50 hover:text-rose-600 border-b border-gray-100 transition-all flex items-center gap-3 text-left"
+                        >
+                          <i className="ri-logout-box-line"></i>
+                          <span>Logout</span>
+                        </button>
+
+                        <Link
+                          to="/profile"
+                          className="px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all flex items-center gap-3"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <i className="ri-user-line"></i>
+                          <span>View Profile</span>
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           )}
 
