@@ -1,4 +1,6 @@
 import express from "express";
+
+import bcrypt from "bcryptjs";
 import Owner from "../models/owner.model.js";
 import {
   SignUpValidation,
@@ -22,6 +24,7 @@ router.post("/register", SignUpValidation, async (req, res) => {
       phone,
       password,
     });
+
     // 🔥 AUTO LOGIN
     req.session.ownerId = owner._id;
     res.status(201).json({
@@ -39,16 +42,26 @@ router.post("/login", LoginValidation, async (req, res) => {
     const { email, password } = req.body;
 
     const owner = await Owner.findOne({ email });
-    if (!owner || owner.password !== password) {
+    if (!owner) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Compare hashed password
+    const isMatch = await bcrypt.compare(password, owner.password);
+    if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     // 🔥 create session (same as signup)
     req.session.ownerId = owner._id;
+
+    // Remove password from the object before sending to frontend
+    const ownerData = owner.toObject();
+    delete ownerData.password;
     res.json({
       success: true,
       message: "Login successful",
-      owner,
+      owner: ownerData,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

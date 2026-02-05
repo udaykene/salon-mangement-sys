@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Certifications from "../components/Certifications";
 import axios from "axios";
+
 const LoginPage = () => {
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [loginType, setLoginType] = useState("owner"); // 'owner' or 'staff'
+  const [loginType, setLoginType] = useState("owner");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -16,34 +17,33 @@ const LoginPage = () => {
   });
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    if (loginType === "owner") {
-      const res = await axios.post(
-        "/auth/login",
-        {
-          email: formData.email,
-          password: formData.password,
-        },
-        { withCredentials: true }
-      );
+    try {
+      if (loginType === "owner") {
+        const res = await axios.post(
+          "/auth/login",
+          {
+            email: formData.email,
+            password: formData.password,
+          },
+          { withCredentials: true },
+        );
 
-      alert(res.data.message);
-      navigate("/admin/dashboard");
-
-    } else {
-      alert("Staff login will be added later");
+        localStorage.setItem("user", JSON.stringify(res.data.owner));
+        alert(res.data.message);
+        navigate("/admin/dashboard");
+      } else {
+        alert("Staff login will be added later");
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Login failed");
     }
-
-  } catch (err) {
-    alert(err.response?.data?.message || "Login failed");
-  }
-};
-
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -52,7 +52,6 @@ const LoginPage = () => {
 
   const handleLoginTypeChange = (type) => {
     setLoginType(type);
-    // Clear form data when switching
     setFormData({
       email: "",
       password: "",
@@ -62,8 +61,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-1 flex-col bg-gray-50">
-      {/* Login Content */}
+    <div className="min-h-screen w-full flex flex-col bg-gray-50">
       <div className="flex-1 min-h-screen flex items-center justify-center">
         <div className="w-full max-w-md px-6 sm:px-8 py-12">
           <div className="w-full max-w-md">
@@ -91,6 +89,7 @@ const LoginPage = () => {
                 <i className="ri-shield-user-line mr-2"></i>
                 Owner Login
               </button>
+
               <button
                 type="button"
                 onClick={() => handleLoginTypeChange("staff")}
@@ -109,7 +108,6 @@ const LoginPage = () => {
             <form onSubmit={handleSubmit} className="space-y-5">
               {loginType === "owner" ? (
                 <>
-                  {/* Owner Login - Email & Password */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Email Address
@@ -158,30 +156,27 @@ const LoginPage = () => {
                   </div>
                 </>
               ) : (
-                <>
-                  {/* Staff Login - Phone Number Only */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <i className="ri-phone-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+91 98765 43210"
-                        className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none transition-all"
-                        required
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500">
-                      <i className="ri-information-line mr-1"></i>
-                      Staff members login with registered phone number
-                    </p>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <div className="relative">
+                    <i className="ri-phone-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+91 98765 43210"
+                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none transition-all"
+                      required
+                    />
                   </div>
-                </>
+                  <p className="mt-2 text-xs text-gray-500">
+                    <i className="ri-information-line mr-1"></i>
+                    Staff members login with registered phone number
+                  </p>
+                </div>
               )}
 
               <div className="flex items-center justify-between">
@@ -195,6 +190,7 @@ const LoginPage = () => {
                   />
                   <span className="text-sm text-gray-700">Remember me</span>
                 </label>
+
                 {loginType === "owner" && (
                   <Link
                     to="/forgot-password"
@@ -209,17 +205,10 @@ const LoginPage = () => {
                 type="submit"
                 className="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 transition-all hover:shadow-xl"
               >
-                {loginType === "owner" ? (
-                  <>
-                    <i className="ri-login-box-line mr-2"></i>
-                    Sign In as Owner
-                  </>
-                ) : (
-                  <>
-                    <i className="ri-login-box-line mr-2"></i>
-                    Sign In as Staff
-                  </>
-                )}
+                <i className="ri-login-box-line mr-2"></i>
+                {loginType === "owner"
+                  ? "Sign In as Owner"
+                  : "Sign In as Staff"}
               </button>
             </form>
 
@@ -245,7 +234,6 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Trust Badges — TL bola sirf import + paste */}
       <Certifications />
     </div>
   );

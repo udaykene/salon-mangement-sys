@@ -1,79 +1,20 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AddBranchForm from "../components/AddBranchForm.jsx";
+import { useBranch } from "../context/BranchContext";
 
 const AdminBranches = () => {
+  const {
+    branches,
+    currentBranch,
+    loading,
+    error,
+    createBranch,
+    toggleBranchStatus,
+    switchBranch,
+  } = useBranch();
+
   const [showAddModal, setShowAddModal] = useState(false);
-  const [currentBranch, setCurrentBranch] = useState({
-    name: "Main Branch - Artist Village",
-    address: "123 Beauty Street",
-    city: "Artist Village",
-    isActive: true,
-  });
-
-  const [branches, setBranches] = useState([
-    {
-      _id: "1",
-      name: "Main Branch - Artist Village",
-      address: "123 Beauty Street",
-      city: "Artist Village",
-      state: "Maharashtra",
-      zipCode: "400001",
-      phone: "+91 98765 43210",
-      email: "main@beautysalon.com",
-      openingTime: "09:00",
-      closingTime: "20:00",
-      workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-      isActive: true,
-      createdAt: "2024-01-15",
-    },
-    {
-      _id: "2",
-      name: "Downtown Branch",
-      address: "456 Style Avenue",
-      city: "Mumbai",
-      state: "Maharashtra",
-      zipCode: "400002",
-      phone: "+91 98765 43211",
-      email: "downtown@beautysalon.com",
-      openingTime: "10:00",
-      closingTime: "21:00",
-      workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-      isActive: true,
-      createdAt: "2024-02-20",
-    },
-    {
-      _id: "3",
-      name: "Suburban Spa & Salon",
-      address: "789 Glamour Road",
-      city: "Thane",
-      state: "Maharashtra",
-      zipCode: "400603",
-      phone: "+91 98765 43212",
-      email: "suburban@beautysalon.com",
-      openingTime: "09:30",
-      closingTime: "19:30",
-      workingDays: ["Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-      isActive: true,
-      createdAt: "2024-03-10",
-    },
-    {
-      _id: "4",
-      name: "Luxury Lounge - Bandra",
-      address: "321 Posh Lane",
-      city: "Mumbai",
-      state: "Maharashtra",
-      zipCode: "400050",
-      phone: "+91 98765 43213",
-      email: "luxury@beautysalon.com",
-      openingTime: "11:00",
-      closingTime: "22:00",
-      workingDays: ["Wed", "Thu", "Fri", "Sat", "Sun"],
-      isActive: false,
-      createdAt: "2023-12-05",
-    },
-  ]);
-
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -89,13 +30,23 @@ const AdminBranches = () => {
   });
 
   const [stats, setStats] = useState({
-    totalBranches: 4,
-    activeBranches: 3,
-    totalStaff: 48,
-    totalRevenue: 156780,
+    totalBranches: 0,
+    activeBranches: 0,
+    totalStaff: 0,
+    totalRevenue: 0,
   });
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  // Calculate stats when branches change
+  useEffect(() => {
+    setStats({
+      totalBranches: branches.length,
+      activeBranches: branches.filter((b) => b.isActive).length,
+      totalStaff: 0, // You can calculate this based on actual staff data
+      totalRevenue: 0, // You can calculate this based on actual revenue data
+    });
+  }, [branches]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -114,41 +65,150 @@ const AdminBranches = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically make an API call to save the branch
-    const newBranch = {
-      ...formData,
-      _id: Date.now().toString(),
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setBranches((prev) => [...prev, newBranch]);
-    setShowAddModal(false);
-    // Reset form
-    setFormData({
-      name: "",
-      address: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      phone: "",
-      email: "",
-      openingTime: "",
-      closingTime: "",
-      workingDays: [],
-      isActive: true,
-    });
+    try {
+      await createBranch(formData);
+      setShowAddModal(false);
+      // Reset form
+      setFormData({
+        name: "",
+        address: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        phone: "",
+        email: "",
+        openingTime: "",
+        closingTime: "",
+        workingDays: [],
+        isActive: true,
+      });
+    } catch (err) {
+      alert(`Error creating branch: ${err.message}`);
+    }
   };
 
-  const toggleBranchStatus = (branchId) => {
-    setBranches((prev) =>
-      prev.map((branch) =>
-        branch._id === branchId
-          ? { ...branch, isActive: !branch.isActive }
-          : branch,
-      ),
-    );
+  const handleToggleStatus = async (branchId, event) => {
+    event.stopPropagation();
+    try {
+      await toggleBranchStatus(branchId);
+    } catch (err) {
+      alert(`Error updating branch status: ${err.message}`);
+    }
   };
+
+  const handleBranchSelect = (branch) => {
+    switchBranch(branch);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <AdminLayout>
+        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading branches...</p>
+            </div>
+          </div>
+        </main>
+      </AdminLayout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <AdminLayout>
+        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <i className="ri-error-warning-line text-6xl text-red-500 mb-4"></i>
+              <p className="text-gray-600 mb-4">Error loading branches: {error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-rose-500 text-white rounded-xl font-semibold"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </main>
+      </AdminLayout>
+    );
+  }
+
+  // Empty state - No branches created yet
+  if (branches.length === 0) {
+    return (
+      <AdminLayout>
+        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+              Branch Management
+            </h1>
+            <p className="text-gray-600">
+              Manage all your salon locations and branches
+            </p>
+          </div>
+
+          {/* Empty State */}
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-64 h-64 bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-8">
+              <i className="ri-store-2-line text-rose-500 text-8xl"></i>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+              No Branches Yet
+            </h2>
+            <p className="text-gray-600 mb-8 text-center max-w-md">
+              Get started by creating your first branch. You can manage multiple
+              locations and switch between them easily.
+            </p>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-semibold shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 hover:scale-105 transition-all flex items-center gap-2"
+            >
+              <i className="ri-add-line text-xl"></i>
+              Create Your First Branch
+            </button>
+          </div>
+        </main>
+
+        {/* Add Branch Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full animate-slideUp overflow-hidden">
+              <AddBranchForm
+                formData={formData}
+                onChange={handleInputChange}
+                onSubmit={handleSubmit}
+                onClose={() => setShowAddModal(false)}
+                onToggleDay={handleWorkingDayToggle}
+              />
+            </div>
+          </div>
+        )}
+
+        <style jsx>{`
+          @keyframes slideUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-slideUp {
+            animation: slideUp 0.3s ease-out;
+          }
+        `}</style>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -175,33 +235,64 @@ const AdminBranches = () => {
         </div>
 
         {/* Current Branch Card */}
-        <div className="mb-8 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl p-6 shadow-xl text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <i className="ri-map-pin-line text-2xl"></i>
+        {currentBranch && (
+          <div className="mb-8 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl p-6 shadow-xl text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <i className="ri-map-pin-line text-2xl"></i>
+                </div>
+                <div>
+                  <p className="text-white/80 text-sm font-medium">
+                    Currently Viewing
+                  </p>
+                  <div className="relative inline-block">
+                    <select
+                      value={currentBranch._id}
+                      onChange={(e) => {
+                        const selected = branches.find(
+                          (b) => b._id === e.target.value
+                        );
+                        if (selected) handleBranchSelect(selected);
+                      }}
+                      className="appearance-none bg-white/20 backdrop-blur-md text-white font-bold text-xl rounded-xl px-5 py-3 pr-12
+               border border-white/30 shadow-lg cursor-pointer
+               hover:bg-white/25 focus:bg-white/25 focus:outline-none
+               transition-all"
+                    >
+                      {branches.map((branch) => (
+                        <option
+                          key={branch._id}
+                          value={branch._id}
+                          className="text-gray-900 font-semibold"
+                        >
+                          {branch.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Custom dropdown arrow */}
+                    <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-white/80">
+                      <i className="ri-arrow-down-s-line text-2xl"></i>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-white/80 text-sm font-medium">
-                  Currently Viewing
-                </p>
-                <h2 className="text-2xl font-bold">{currentBranch.name}</h2>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <span className="flex items-center gap-2">
+                  <i className="ri-map-pin-2-line"></i>
+                  {currentBranch.address}, {currentBranch.city}
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="ri-checkbox-circle-line"></i>
+                  {currentBranch.isActive ? "Active" : "Inactive"}
+                </span>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-4 text-sm">
-              <span className="flex items-center gap-2">
-                <i className="ri-map-pin-2-line"></i>
-                {currentBranch.address}, {currentBranch.city}
-              </span>
-              <span className="flex items-center gap-2">
-                <i className="ri-checkbox-circle-line"></i>
-                {currentBranch.isActive ? "Active" : "Inactive"}
-              </span>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -267,7 +358,10 @@ const AdminBranches = () => {
           {branches.map((branch) => (
             <div
               key={branch._id}
-              className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all group"
+              onClick={() => handleBranchSelect(branch)}
+              className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all cursor-pointer group
+    ${currentBranch?._id === branch._id ? "ring-2 ring-rose-400" : ""}
+  `}
             >
               <div className="p-6">
                 {/* Header */}
@@ -286,7 +380,7 @@ const AdminBranches = () => {
                     </div>
                   </div>
                   <button
-                    onClick={() => toggleBranchStatus(branch._id)}
+                    onClick={(e) => handleToggleStatus(branch._id, e)}
                     className={`px-3 py-1 rounded-full text-xs font-semibold border-2 transition-all ${
                       branch.isActive
                         ? "bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
@@ -299,51 +393,63 @@ const AdminBranches = () => {
 
                 {/* Details */}
                 <div className="space-y-3 mb-4">
-                  <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <i className="ri-map-pin-line text-rose-500 mt-0.5"></i>
-                    <span>
-                      {branch.address}, {branch.city}, {branch.state} -{" "}
-                      {branch.zipCode}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-2">
-                      <i className="ri-phone-line text-rose-500"></i>
-                      {branch.phone}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <i className="ri-mail-line text-rose-500"></i>
-                    {branch.email}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <i className="ri-time-line text-rose-500"></i>
-                    <span>
-                      {branch.openingTime} - {branch.closingTime}
-                    </span>
-                  </div>
+                  {branch.address && (
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <i className="ri-map-pin-line text-rose-500 mt-0.5"></i>
+                      <span>
+                        {branch.address}
+                        {branch.city && `, ${branch.city}`}
+                        {branch.state && `, ${branch.state}`}
+                        {branch.zipCode && ` - ${branch.zipCode}`}
+                      </span>
+                    </div>
+                  )}
+                  {branch.phone && (
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span className="flex items-center gap-2">
+                        <i className="ri-phone-line text-rose-500"></i>
+                        {branch.phone}
+                      </span>
+                    </div>
+                  )}
+                  {branch.email && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <i className="ri-mail-line text-rose-500"></i>
+                      {branch.email}
+                    </div>
+                  )}
+                  {branch.openingTime && branch.closingTime && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <i className="ri-time-line text-rose-500"></i>
+                      <span>
+                        {branch.openingTime} - {branch.closingTime}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Working Days */}
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-gray-500 mb-2">
-                    WORKING DAYS
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {weekDays.map((day) => (
-                      <span
-                        key={day}
-                        className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                          branch.workingDays.includes(day)
-                            ? "bg-rose-100 text-rose-700 border border-rose-200"
-                            : "bg-gray-100 text-gray-400 border border-gray-200"
-                        }`}
-                      >
-                        {day}
-                      </span>
-                    ))}
+                {branch.workingDays && branch.workingDays.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-500 mb-2">
+                      WORKING DAYS
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {weekDays.map((day) => (
+                        <span
+                          key={day}
+                          className={`px-3 py-1 rounded-lg text-xs font-semibold ${
+                            branch.workingDays.includes(day)
+                              ? "bg-rose-100 text-rose-700 border border-rose-200"
+                              : "bg-gray-100 text-gray-400 border border-gray-200"
+                          }`}
+                        >
+                          {day}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex gap-2 pt-4 border-t border-gray-100">
@@ -364,45 +470,15 @@ const AdminBranches = () => {
 
       {/* Add Branch Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-slideUp">
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-rose-500 to-pink-500 p-6 rounded-t-3xl">
-              <div className="flex items-center justify-between text-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <i className="ri-add-line text-2xl"></i>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">Add New Branch</h2>
-                    <p className="text-white/80 text-sm">
-                      Fill in the details below
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all"
-                >
-                  <i className="ri-close-line text-2xl"></i>
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            {showAddModal && (
-              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-xl w-full max-w-2xl">
-                  <AddBranchForm
-                    formData={formData}
-                    onChange={handleInputChange}
-                    onSubmit={handleSubmit}
-                    onClose={() => setShowAddModal(false)}
-                    onToggleDay={handleWorkingDayToggle}
-                  />
-                </div>
-              </div>
-            )}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full animate-slideUp overflow-hidden">
+            <AddBranchForm
+              formData={formData}
+              onChange={handleInputChange}
+              onSubmit={handleSubmit}
+              onClose={() => setShowAddModal(false)}
+              onToggleDay={handleWorkingDayToggle}
+            />
           </div>
         </div>
       )}
