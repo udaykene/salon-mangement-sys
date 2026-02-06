@@ -115,6 +115,50 @@ export const BranchProvider = ({ children }) => {
     }
   };
 
+  // Update branch
+  const updateBranch = async (branchId, branchData) => {
+    try {
+      const res = await api.put(`/${branchId}`, branchData);
+      const updatedBranch = res.data;
+
+      setBranches((prev) =>
+        prev.map((b) => (b._id === branchId ? updatedBranch : b)),
+      );
+
+      if (currentBranch?._id === branchId) {
+        setCurrentBranch(updatedBranch);
+      }
+
+      return updatedBranch;
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || err.message || "Error updating branch";
+      throw errorMessage;
+    }
+  };
+
+  // Delete branch
+  const deleteBranch = async (branchId) => {
+    try {
+      await api.delete(`/${branchId}`);
+
+      setBranches((prev) => prev.filter((b) => b._id !== branchId));
+
+      if (currentBranch?._id === branchId) {
+        const remaining = branches.filter((b) => b._id !== branchId);
+        if (remaining.length > 0) {
+          setCurrentBranch(remaining[0]);
+          localStorage.setItem("currentBranchId", remaining[0]._id);
+        } else {
+          setCurrentBranch(null);
+          localStorage.removeItem("currentBranchId");
+        }
+      }
+    } catch (err) {
+      throw err.response?.data?.message || "Error deleting branch";
+    }
+  };
+
   // Switch current branch selection
   const switchBranch = (branch) => {
     setCurrentBranch(branch);
@@ -135,7 +179,8 @@ export const BranchProvider = ({ children }) => {
     fetchBranches,
     createBranch,
     toggleBranchStatus,
-
+    updateBranch,
+    deleteBranch,
     switchBranch,
   };
 

@@ -85,4 +85,34 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+/* Update branch */
+router.put("/:id", validateBranch, async (req, res) => {
+  try {
+    const branchId = req.params.id;
+    const ownerId = req.session.ownerId;
+
+    // Verify session exists
+    if (!ownerId) {
+      return res
+        .status(401)
+        .json({ message: "Session expired. Please log in again." });
+    }
+
+    // Find and update the branch (also verify ownership)
+    const branch = await Branch.findOneAndUpdate(
+      { _id: branchId, ownerId: ownerId },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!branch) {
+      return res.status(404).json({ message: "Branch not found or unauthorized" });
+    }
+
+    res.json(branch);
+  } catch (err) {
+    res.status(500).json({ message: err.message || "Internal Server Error" });
+  }
+});
+
 export default router;
