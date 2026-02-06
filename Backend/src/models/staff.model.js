@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-
 const staffSchema = new mongoose.Schema(
   {
     ownerId: {
@@ -8,45 +7,38 @@ const staffSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",
       required: true,
       index: true,
     },
-
     name: { type: String, required: true },
-
     phone: {
       type: String,
       required: true,
       index: true,
     },
-
     email: String,
-
-    password: String, // only if you allow password login (OTP recommended)
-
+    password: String,
     role: {
       type: String,
       default: "staff",
     },
-
-    specialization: [String],
-
+    specialization: [String], // Form string will be converted to this array
     salary: Number,
     commission: Number,
-
     workingDays: [String],
-
     workingHours: {
-      start: String,
-      end: String,
+      start: String, // Matches "Working Hours Start" in form
+      end: String, // Matches "Working Hours End" in form
     },
-
-    isActive: { type: Boolean, default: true },
-
+    // CHANGED: Supports "active", "on-leave", and "inactive" from your UI
+    status: {
+      type: String,
+      enum: ["active", "on-leave", "inactive"],
+      default: "active",
+    },
     joiningDate: { type: Date, default: Date.now },
   },
   { timestamps: true },

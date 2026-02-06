@@ -1,20 +1,22 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-.container{
-    display :flex;
-    width:100%;
-    justify-content:center;
-    align-items:center;
-    background-color: aliceblue;
+.container {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  background-color: aliceblue;
 }
-.container h1{
-    font-size: 5rem;
-    color: black;
+.container h1 {
+  font-size: 5rem;
+  color: black;
 }
-
+.input {
+  @apply w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none;
+}
 /* Hide scrollbar but keep scroll */
 .no-scrollbar::-webkit-scrollbar {
   width: 0px;
@@ -49,5 +51,5 @@
 /* Firefox */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #64748b  rgba(255, 255, 255, 0.05);
+  scrollbar-color: #64748b rgba(255, 255, 255, 0.05);
 }
