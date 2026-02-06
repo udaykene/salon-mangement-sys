@@ -11,6 +11,12 @@ const ownerSchema = new mongoose.Schema(
     },
     phone: { type: String, required: true },
     password: { type: String, required: true },
+    branches: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Branch",
+      },
+    ],
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

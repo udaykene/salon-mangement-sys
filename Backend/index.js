@@ -6,6 +6,7 @@ import session from "express-session";
 import "./src/db/index.js";
 import AuthRouter from "./src/routes/AuthRouter.js";
 import BranchRouter from './src/routes/BranchRouter.js'
+import MongoStore from 'connect-mongo';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -26,6 +27,7 @@ app.use(session({
   secret: 'salon_secret',
   resave: false,
   saveUninitialized: false,
+  store:MongoStore.create({ mongoUrl: process.env.MONGO_DB_URL }), // Saves session to DB
   cookie: { 
     secure: false, 
     httpOnly: true, 

@@ -31,8 +31,8 @@ const LoginPage = () => {
         );
 
         localStorage.setItem("user", JSON.stringify(res.data.owner));
-        alert(res.data.message);
-        navigate("/admin/dashboard");
+        // alert(res.data.message);
+      window.location.href = "/admin/dashboard";
       } else {
         alert("Staff login will be added later");
       }

@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useBranch } from "../context/BranchContext"; // Adjust path as needed
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
-
+  const { logoutBranches } = useBranch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 1023);
   const [scrolled, setScrolled] = useState(false);
@@ -18,6 +19,7 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await axios.post("/auth/logout", {}, { withCredentials: true });
+      logoutBranches();
       setIsLoggedIn(false);
       navigate("/login");
     } catch (err) {

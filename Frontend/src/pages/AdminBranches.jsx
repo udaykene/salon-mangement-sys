@@ -67,6 +67,12 @@ const AdminBranches = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Quick UI validation check
+    if (formData.workingDays.length < 1) {
+      alert("Please select at least one working day.");
+      return;
+    }
     try {
       await createBranch(formData);
       setShowAddModal(false);
@@ -126,7 +132,9 @@ const AdminBranches = () => {
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
               <i className="ri-error-warning-line text-6xl text-red-500 mb-4"></i>
-              <p className="text-gray-600 mb-4">Error loading branches: {error}</p>
+              <p className="text-gray-600 mb-4">
+                Error loading branches: {error}
+              </p>
               <button
                 onClick={() => window.location.reload()}
                 className="px-6 py-3 bg-rose-500 text-white rounded-xl font-semibold"
@@ -253,7 +261,7 @@ const AdminBranches = () => {
                       value={currentBranch._id}
                       onChange={(e) => {
                         const selected = branches.find(
-                          (b) => b._id === e.target.value
+                          (b) => b._id === e.target.value,
                         );
                         if (selected) handleBranchSelect(selected);
                       }}
