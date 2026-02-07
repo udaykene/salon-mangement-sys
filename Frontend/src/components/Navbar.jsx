@@ -7,13 +7,14 @@ const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [branchDropdownOpen, setBranchDropdownOpen] = useState(false);
-  const { logoutBranches } = useBranch();
+  const { logoutBranches, branches, currentBranch, switchBranch } = useBranch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 1023);
   const [scrolled, setScrolled] = useState(false);
 
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const branchDropdownRef = useRef(null);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -25,6 +26,11 @@ const Navbar = () => {
     } catch (err) {
       console.error("Logout failed", err);
     }
+  };
+
+  const handleBranchSwitch = (branch) => {
+    switchBranch(branch);
+    setBranchDropdownOpen(false);
   };
 
   // Track screen size
@@ -66,6 +72,20 @@ const Navbar = () => {
         !buttonRef.current.contains(event.target)
       ) {
         setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close branch dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        branchDropdownRef.current &&
+        !branchDropdownRef.current.contains(event.target)
+      ) {
+        setBranchDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -114,7 +134,6 @@ const Navbar = () => {
           )}
 
           {/* Desktop Right Section */}
-          {/* Desktop Right Section */}
           {isDesktop && (
             <div className="flex items-center gap-3">
               {!isLoggedIn ? (
@@ -136,36 +155,53 @@ const Navbar = () => {
                     Dashboard
                   </Link>
 
-                  {/* Switch Branch Button */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setBranchDropdownOpen((o) => !o)}
-                      className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-full shadow-md shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 transition-all flex items-center gap-2"
-                    >
-                      Switch Branch
-                      <i
-                        className={`ri-arrow-down-s-line transition-transform ${
-                          branchDropdownOpen ? "rotate-180" : ""
-                        }`}
-                      ></i>
-                    </button>
+                  {/* Switch Branch Button - Only show if branches exist */}
+                  {branches.length > 0 && (
+                    <div className="relative" ref={branchDropdownRef}>
+                      <button
+                        onClick={() => setBranchDropdownOpen((o) => !o)}
+                        className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-full shadow-md shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 transition-all flex items-center gap-2"
+                      >
+                        <i className="ri-building-line"></i>
+                        {currentBranch
+                          ? currentBranch.name
+                          : "Switch Branch"}
+                        <i
+                          className={`ri-arrow-down-s-line transition-transform ${
+                            branchDropdownOpen ? "rotate-180" : ""
+                          }`}
+                        ></i>
+                      </button>
 
-                    {branchDropdownOpen && (
-                      <div className="absolute right-0 mt-3 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[200px] overflow-hidden z-50">
-                        <button className="w-full text-left px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all">
-                          Main Branch
-                        </button>
-                        <button className="w-full text-left px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all">
-                          Andheri Branch
-                        </button>
-                        <button className="w-full text-left px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all">
-                          Pune Branch
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                      {branchDropdownOpen && (
+                        <div className="absolute right-0 mt-3 bg-white rounded-xl shadow-2xl border border-gray-100 min-w-[220px] max-h-[300px] overflow-y-auto z-50">
+                          {branches.map((branch) => (
+                            <button
+                              key={branch._id}
+                              onClick={() => handleBranchSwitch(branch)}
+                              className={`w-full text-left px-5 py-3 hover:bg-rose-50 hover:text-rose-600 transition-all flex items-center justify-between ${
+                                currentBranch?._id === branch._id
+                                  ? "bg-rose-50 text-rose-600 font-semibold"
+                                  : ""
+                              }`}
+                            >
+                              <span className="flex-1">{branch.name}</span>
+                              {currentBranch?._id === branch._id && (
+                                <i className="ri-check-line text-rose-600"></i>
+                              )}
+                            </button>
+                          ))}
+                          {branches.length === 0 && (
+                            <div className="px-5 py-3 text-gray-500 text-sm text-center">
+                              No branches available
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Profile Dropdown (unchanged) */}
+                  {/* Profile Dropdown */}
                   <div className="relative flex items-center">
                     <button
                       ref={buttonRef}
@@ -273,13 +309,42 @@ const Navbar = () => {
               <div className="border-t border-gray-100 my-2"></div>
 
               {isLoggedIn ? (
-                <Link
-                  to="/admin/dashboard"
-                  className="px-4 py-3 text-rose-600 font-medium"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link
+                    to="/admin/dashboard"
+                    className="px-4 py-3 text-rose-600 font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+
+                  {/* Mobile Branch Switcher */}
+                  {branches.length > 0 && (
+                    <div className="px-4 py-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Switch Branch
+                      </label>
+                      <select
+                        value={currentBranch?._id || ""}
+                        onChange={(e) => {
+                          const selected = branches.find(
+                            (b) => b._id === e.target.value
+                          );
+                          if (selected) {
+                            handleBranchSwitch(selected);
+                          }
+                        }}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-200 bg-white focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none"
+                      >
+                        {branches.map((branch) => (
+                          <option key={branch._id} value={branch._id}>
+                            {branch.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
               ) : (
                 <Link
                   to="/login"
