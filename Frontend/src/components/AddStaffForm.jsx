@@ -105,7 +105,7 @@ const AddStaffForm = ({
             </div>
 
             {/* Password */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Initial Password *
               </label>
@@ -114,11 +114,10 @@ const AddStaffForm = ({
                 name="password"
                 value={formData.password}
                 onChange={onChange}
-                placeholder="Initial password"
-                required
+                placeholder="Leave empty to use default "
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
               />
-            </div>
+            </div> */}
           </div>
         </div>
 

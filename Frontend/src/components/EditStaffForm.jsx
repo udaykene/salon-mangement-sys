@@ -106,7 +106,7 @@ const EditStaffForm = ({
             </div>
 
             {/* Password (optional for edit) */}
-            <div>
+            {/* <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 New Password (leave blank to keep current)
               </label>
@@ -118,7 +118,7 @@ const EditStaffForm = ({
                 placeholder="Enter new password"
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
               />
-            </div>
+            </div> */}
           </div>
         </div>
 

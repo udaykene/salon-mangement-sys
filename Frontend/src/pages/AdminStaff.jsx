@@ -1,128 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AddStaffForm from "../components/AddStaffForm.jsx";
 import EditStaffForm from "../components/EditStaffForm.jsx";
-import { useBranch } from "../context/BranchContext";
+import { useBranch } from "../context/BranchContext.jsx";
+import { useStaff } from "../context/StaffContext.jsx";
+import Toast from "../components/Toast";
 
 const AdminStaff = () => {
-  const { currentBranch } = useBranch();
-
-  const [staff, setStaff] = useState([
-    {
-      _id: "1",
-      ownerId: "owner123",
-      branchId: "branch1",
-      name: "Emma Williams",
-      email: "emma@beautysalon.com",
-      phone: "+91 9876543210",
-      role: "Senior Stylist",
-      specialization: ["Haircut", "Hair Color", "Styling"],
-      status: "active",
-      joiningDate: new Date("2023-01-15"),
-      salary: 85000,
-      commission: 15,
-      workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-      workingHours: {
-        start: "09:00 AM",
-        end: "06:00 PM",
-      },
-    },
-    {
-      _id: "2",
-      ownerId: "owner123",
-      branchId: "branch1",
-      name: "Priya Sharma",
-      email: "priya@beautysalon.com",
-      phone: "+91 9123456780",
-      role: "Makeup Artist",
-      specialization: ["Bridal Makeup", "Party Makeup", "Natural Makeup"],
-      status: "active",
-      joiningDate: new Date("2022-03-20"),
-      salary: 92000,
-      commission: 20,
-      workingDays: ["Mon", "Tue", "Wed", "Fri", "Sat"],
-      workingHours: {
-        start: "10:00 AM",
-        end: "07:00 PM",
-      },
-    },
-    {
-      _id: "3",
-      ownerId: "owner123",
-      branchId: "branch1",
-      name: "Lisa Anderson",
-      email: "lisa@beautysalon.com",
-      phone: "+91 9988776655",
-      role: "Spa Therapist",
-      specialization: ["Swedish Massage", "Aromatherapy", "Hot Stone"],
-      status: "active",
-      joiningDate: new Date("2023-07-10"),
-      salary: 65000,
-      commission: 12,
-      workingDays: ["Tue", "Wed", "Thu", "Fri", "Sat"],
-      workingHours: {
-        start: "09:00 AM",
-        end: "05:00 PM",
-      },
-    },
-    {
-      _id: "4",
-      ownerId: "owner123",
-      branchId: "branch1",
-      name: "Maria Garcia",
-      email: "maria@beautysalon.com",
-      phone: "+91 9445566778",
-      role: "Bridal Specialist",
-      specialization: ["Bridal Makeup", "Bridal Hair", "Saree Draping"],
-      status: "active",
-      joiningDate: new Date("2021-02-15"),
-      salary: 78000,
-      commission: 18,
-      workingDays: ["Wed", "Thu", "Fri", "Sat", "Sun"],
-      workingHours: {
-        start: "08:00 AM",
-        end: "06:00 PM",
-      },
-    },
-    {
-      _id: "5",
-      ownerId: "owner123",
-      branchId: "branch1",
-      name: "John Smith",
-      email: "john@beautysalon.com",
-      phone: "+91 9334455667",
-      role: "Barber",
-      specialization: ["Haircut", "Beard Styling", "Hair Treatment"],
-      status: "on-leave",
-      joiningDate: new Date("2023-09-05"),
-      salary: 58000,
-      commission: 10,
-      workingDays: ["Mon", "Tue", "Thu", "Fri", "Sat"],
-      workingHours: {
-        start: "09:00 AM",
-        end: "06:00 PM",
-      },
-    },
-    {
-      _id: "6",
-      ownerId: "owner123",
-      branchId: "branch1",
-      name: "Anjali Verma",
-      email: "anjali@beautysalon.com",
-      phone: "+91 9223344556",
-      role: "Nail Technician",
-      specialization: ["Manicure", "Pedicure", "Nail Art", "Gel Polish"],
-      status: "active",
-      joiningDate: new Date("2022-11-12"),
-      salary: 72000,
-      commission: 14,
-      workingDays: ["Mon", "Wed", "Thu", "Fri", "Sat"],
-      workingHours: {
-        start: "10:00 AM",
-        end: "07:00 PM",
-      },
-    },
-  ]);
+  const { branches, currentBranch } = useBranch();
+  const {
+    staff,
+    loading,
+    addStaff,
+    updateStaff,
+    deleteStaff,
+  } = useStaff();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -131,11 +23,18 @@ const AdminStaff = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState(null);
 
+  // Toast state
+  const [toast, setToast] = useState(null);
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterBranch, setFilterBranch] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    password: "",
     role: "",
     branchId: "",
     specialization: "",
@@ -148,9 +47,6 @@ const AdminStaff = () => {
     },
     status: "active",
   });
-
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterRole, setFilterRole] = useState("all");
 
   const roles = [
     "all",
@@ -167,12 +63,46 @@ const AdminStaff = () => {
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  const [stats, setStats] = useState({
-    totalStaff: 0,
-    activeStaff: 0,
-    onLeaveStaff: 0,
-    inactiveStaff: 0,
-  });
+  // Show toast notification
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
+
+  // Calculate stats from staff data
+  const stats = useMemo(() => {
+    return {
+      totalStaff: staff.length,
+      activeStaff: staff.filter((s) => s.status === "active").length,
+      onLeaveStaff: staff.filter((s) => s.status === "on-leave").length,
+      inactiveStaff: staff.filter((s) => s.status === "inactive").length,
+    };
+  }, [staff]);
+
+  // Filter staff based on search query, branch, and role
+  const filteredStaff = useMemo(() => {
+    return staff.filter((member) => {
+      // Search filter (name or phone)
+      const matchesSearch =
+        searchQuery === "" ||
+        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        member.phone.includes(searchQuery);
+
+      // Branch filter
+      const matchesBranch =
+        filterBranch === "all" || member.branchId === filterBranch;
+
+      // Role filter
+      const matchesRole = filterRole === "all" || member.role === filterRole;
+
+      return matchesSearch && matchesBranch && matchesRole;
+    });
+  }, [staff, searchQuery, filterBranch, filterRole]);
+
+  // Get branch name by ID
+  const getBranchName = (branchId) => {
+    const branch = branches.find((b) => b._id === branchId);
+    return branch ? branch.name : "Unknown Branch";
+  };
 
   // Reset form when opening ADD modal
   useEffect(() => {
@@ -181,9 +111,8 @@ const AdminStaff = () => {
         name: "",
         email: "",
         phone: "",
-        password: "",
         role: "",
-        branchId: "",
+        branchId: currentBranch?._id || "",
         specialization: "",
         salary: "",
         commission: "",
@@ -195,7 +124,7 @@ const AdminStaff = () => {
         status: "active",
       });
     }
-  }, [showAddModal]);
+  }, [showAddModal, currentBranch]);
 
   // Populate form ONLY when opening EDIT modal
   useEffect(() => {
@@ -204,7 +133,6 @@ const AdminStaff = () => {
         name: editingStaff.name || "",
         email: editingStaff.email || "",
         phone: editingStaff.phone || "",
-        password: "",
         role: editingStaff.role || "",
         branchId: editingStaff.branchId || "",
         specialization: Array.isArray(editingStaff.specialization)
@@ -222,16 +150,6 @@ const AdminStaff = () => {
     }
   }, [showEditModal, editingStaff]);
 
-  // Calculate stats when staff changes
-  useEffect(() => {
-    setStats({
-      totalStaff: staff.length,
-      activeStaff: staff.filter((s) => s.status === "active").length,
-      onLeaveStaff: staff.filter((s) => s.status === "on-leave").length,
-      inactiveStaff: staff.filter((s) => s.status === "inactive").length,
-    });
-  }, [staff]);
-
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => setOpenMenuId(null);
@@ -247,13 +165,6 @@ const AdminStaff = () => {
     if (status === "inactive") return "bg-red-100 text-red-700 border-red-200";
     return "bg-gray-100 text-gray-700 border-gray-200";
   };
-
-  const filteredStaff = staff.filter((m) => {
-    return (
-      (filterStatus === "all" || m.status === filterStatus) &&
-      (filterRole === "all" || m.role === filterRole)
-    );
-  });
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -287,25 +198,16 @@ const AdminStaff = () => {
     e.preventDefault();
 
     if (formData.workingDays.length < 1) {
-      alert("Please select at least one working day.");
+      showToast("Please select at least one working day", "error");
       return;
     }
 
     try {
-      const newStaff = {
-        _id: Date.now().toString(),
-        ...formData,
-        specialization: formData.specialization
-          .split(",")
-          .map((s) => s.trim())
-          .filter((s) => s),
-        joiningDate: new Date(),
-      };
-
-      setStaff((prev) => [...prev, newStaff]);
+      await addStaff(formData);
       setShowAddModal(false);
+      showToast("Staff member added successfully!", "success");
     } catch (err) {
-      alert(`Error creating staff: ${err.message}`);
+      showToast(err.message || "Error adding staff member", "error");
     }
   };
 
@@ -320,29 +222,17 @@ const AdminStaff = () => {
     e.preventDefault();
 
     if (formData.workingDays.length < 1) {
-      alert("Please select at least one working day.");
+      showToast("Please select at least one working day", "error");
       return;
     }
 
     try {
-      setStaff((prev) =>
-        prev.map((s) =>
-          s._id === editingStaff._id
-            ? {
-                ...s,
-                ...formData,
-                specialization: formData.specialization
-                  .split(",")
-                  .map((s) => s.trim())
-                  .filter((s) => s),
-              }
-            : s
-        )
-      );
+      await updateStaff(editingStaff._id, formData);
       setShowEditModal(false);
       setEditingStaff(null);
+      showToast("Staff member updated successfully!", "success");
     } catch (err) {
-      alert(`Error updating staff: ${err.message || err}`);
+      showToast(err.message || "Error updating staff member", "error");
     }
   };
 
@@ -355,11 +245,12 @@ const AdminStaff = () => {
 
   const confirmDelete = async () => {
     try {
-      setStaff((prev) => prev.filter((s) => s._id !== staffToDelete));
+      await deleteStaff(staffToDelete);
       setShowDeleteModal(false);
       setStaffToDelete(null);
+      showToast("Staff member deleted successfully!", "success");
     } catch (err) {
-      alert(`Error deleting staff: ${err.message || err}`);
+      showToast(err.message || "Error deleting staff member", "error");
     }
   };
 
@@ -380,8 +271,22 @@ const AdminStaff = () => {
     });
   };
 
+  // Loading state
+  if (loading && staff.length === 0) {
+    return (
+      <AdminLayout>
+        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-gray-600 font-semibold">Loading staff...</p>
+          </div>
+        </main>
+      </AdminLayout>
+    );
+  }
+
   // Empty state - No staff created yet
-  if (staff.length === 0) {
+  if (!loading && staff.length === 0) {
     return (
       <AdminLayout>
         <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
@@ -427,6 +332,15 @@ const AdminStaff = () => {
               />
             </div>
           </div>
+        )}
+
+        {/* Toast Notification */}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
         )}
 
         <style jsx>{`
@@ -551,61 +465,136 @@ const AdminStaff = () => {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Search and Filters */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
           <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50">
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <i className="ri-filter-line text-rose-600"></i>
-              Filter Staff
+              <i className="ri-search-line text-rose-600"></i>
+              Search & Filter Staff
             </h2>
           </div>
-          <div className="p-6 space-y-4">
-            {/* Status Filter */}
-            <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                Status
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {["all", "active", "on-leave", "inactive"].map((s) => (
+          
+          <div className="p-6">
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search by name or phone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-5 py-3.5 pl-12 rounded-xl border-2 border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-gray-900 font-medium"
+                />
+                <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl"></i>
+                {searchQuery && (
                   <button
-                    key={s}
-                    onClick={() => setFilterStatus(s)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-                      filterStatus === s
-                        ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    {s === "all"
-                      ? "All Status"
-                      : s === "on-leave"
-                      ? "On Leave"
-                      : s.charAt(0).toUpperCase() + s.slice(1)}
+                    <i className="ri-close-circle-fill text-xl"></i>
                   </button>
-                ))}
+                )}
               </div>
             </div>
 
-            {/* Role Filter */}
-            <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
-                Role
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {roles.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setFilterRole(r)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-                      filterRole === r
-                        ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    {r === "all" ? "All Roles" : r}
-                  </button>
-                ))}
+            {/* Filters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Branch Filter */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  <i className="ri-building-line mr-1"></i>
+                  Filter by Branch
+                </label>
+                <select
+                  value={filterBranch}
+                  onChange={(e) => setFilterBranch(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white font-medium text-gray-900"
+                >
+                  <option value="all">All Branches</option>
+                  {branches.map((branch) => (
+                    <option key={branch._id} value={branch._id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              {/* Role Filter */}
+              <div>
+                <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                  <i className="ri-briefcase-line mr-1"></i>
+                  Filter by Role
+                </label>
+                <select
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white font-medium text-gray-900"
+                >
+                  {roles.map((role) => (
+                    <option key={role} value={role}>
+                      {role === "all" ? "All Roles" : role}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {(searchQuery || filterBranch !== "all" || filterRole !== "all") && (
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-600 font-semibold">
+                  Active filters:
+                </span>
+                {searchQuery && (
+                  <span className="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    Search: "{searchQuery}"
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="hover:text-rose-900"
+                    >
+                      <i className="ri-close-line"></i>
+                    </button>
+                  </span>
+                )}
+                {filterBranch !== "all" && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    Branch: {getBranchName(filterBranch)}
+                    <button
+                      onClick={() => setFilterBranch("all")}
+                      className="hover:text-blue-900"
+                    >
+                      <i className="ri-close-line"></i>
+                    </button>
+                  </span>
+                )}
+                {filterRole !== "all" && (
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    Role: {filterRole}
+                    <button
+                      onClick={() => setFilterRole("all")}
+                      className="hover:text-purple-900"
+                    >
+                      <i className="ri-close-line"></i>
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilterBranch("all");
+                    setFilterRole("all");
+                  }}
+                  className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
+            {/* Results Count */}
+            <div className="mt-4 text-sm text-gray-600">
+              Showing <span className="font-bold text-gray-900">{filteredStaff.length}</span> of{" "}
+              <span className="font-bold text-gray-900">{staff.length}</span> staff members
             </div>
           </div>
         </div>
@@ -666,8 +655,8 @@ const AdminStaff = () => {
                   </div>
                 </div>
 
-                {/* Status Badge */}
-                <div className="mb-4">
+                {/* Status Badge & Branch */}
+                <div className="flex items-center gap-2 mb-4">
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-semibold border inline-block ${getStatusStyles(member.status)}`}
                   >
@@ -675,6 +664,10 @@ const AdminStaff = () => {
                       ? "On Leave"
                       : member.status.charAt(0).toUpperCase() +
                         member.status.slice(1)}
+                  </span>
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                    <i className="ri-building-line mr-1"></i>
+                    {getBranchName(member.branchId)}
                   </span>
                 </div>
 
@@ -765,16 +758,26 @@ const AdminStaff = () => {
           ))}
         </div>
 
-        {/* Empty State */}
-        {filteredStaff.length === 0 && (
+        {/* Empty State for filtered results */}
+        {filteredStaff.length === 0 && staff.length > 0 && (
           <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-100">
             <i className="ri-user-search-line text-6xl text-gray-300 mb-4 block"></i>
             <h3 className="text-xl font-bold text-gray-900 mb-2">
               No Staff Found
             </h3>
-            <p className="text-gray-600">
-              Try adjusting your filters to see more results.
+            <p className="text-gray-600 mb-4">
+              No staff members match your search criteria.
             </p>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setFilterBranch("all");
+                setFilterRole("all");
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-semibold shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 transition-all"
+            >
+              Clear Filters
+            </button>
           </div>
         )}
       </main>
@@ -847,6 +850,15 @@ const AdminStaff = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       <style jsx>{`

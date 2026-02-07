@@ -14,23 +14,19 @@ export const createStaffSchema = Joi.object({
 
   email: Joi.string().email().allow(null, "").optional(),
 
-  password: Joi.string().min(6).required(),
+  password: Joi.forbidden(),
 
   role: Joi.string().trim().required(),
 
   // Comes as "Haircut, Color" from form → you’ll split before saving
-  specialization: Joi.array()
-    .items(Joi.string().trim().min(1))
-    .optional(),
+  specialization: Joi.array().items(Joi.string().trim().min(1)).optional(),
 
   salary: Joi.number().min(0).required(),
 
   commission: Joi.number().min(0).max(100).optional(),
 
   workingDays: Joi.array()
-    .items(
-      Joi.string().valid("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"),
-    )
+    .items(Joi.string().valid("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
     .min(1)
     .required(),
 

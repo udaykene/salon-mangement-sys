@@ -6,6 +6,7 @@ import session from "express-session";
 import "./src/db/index.js";
 import AuthRouter from "./src/routes/AuthRouter.js";
 import BranchRouter from './src/routes/BranchRouter.js'
+import StaffRouter from './src/routes/StaffRouter.js'
 import MongoStore from 'connect-mongo';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(express.static("public"));
 // 5. ROUTES LAST
 app.use("/auth", AuthRouter);
 app.use("/api/branches", BranchRouter);
+app.use("/api/staff", StaffRouter);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");
