@@ -1,10 +1,11 @@
 import express from "express";
-
 import bcrypt from "bcryptjs";
 import Owner from "../models/owner.model.js";
+import Staff from "../models/staff.model.js";
 import {
   SignUpValidation,
   LoginValidation,
+  StaffLoginValidation,
 } from "../middlewares/AuthValidation.js";
 
 const router = express.Router();
@@ -67,6 +68,58 @@ router.post("/login", LoginValidation, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+router.post("/login/staff", StaffLoginValidation, async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    // Find staff by phone number
+    const staff = await Staff.findOne({ phone });
+    
+    if (!staff) {
+      return res.status(400).json({ 
+        message: "Staff member not found. Please check your phone number." 
+      });
+    }
+
+    // Verify role is receptionist
+    if (staff.role !== "Receptionist") {
+      return res.status(403).json({ 
+        message: "Access denied. Only receptionists can login here." 
+      });
+    }
+
+    // Check if staff is active
+    if (staff.status !== "active") {
+      return res.status(403).json({ 
+        message: `Your account is ${staff.status}. Please contact your manager.` 
+      });
+    }
+
+    // Create session with all required context
+    req.session.staffId = staff._id;
+    req.session.ownerId = staff.ownerId;
+    req.session.branchId = staff.branchId; // Critical for data isolation
+    req.session.role = "receptionist";
+
+    // Remove sensitive data before sending
+    const staffData = staff.toObject();
+    delete staffData.password;
+
+    res.json({
+      success: true,
+      message: "Login successful",
+      staff: staffData,
+    });
+  } catch (err) {
+    console.error("Staff login error:", err);
+    res.status(500).json({ message: err.message || "Login failed" });
+  }
+});
+
+
+
+
 
 router.get("/me", (req, res) => {
   if (!req.session.ownerId) {

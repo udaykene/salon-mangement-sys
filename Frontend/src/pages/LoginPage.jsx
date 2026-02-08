@@ -30,11 +30,30 @@ const LoginPage = () => {
           { withCredentials: true },
         );
 
-        localStorage.setItem("user", JSON.stringify(res.data.owner));
+        localStorage.setItem(
+          "user",
+          JSON.stringify({ ...res.data.owner, role: "owner" }),
+        );
         // alert(res.data.message);
         window.location.href = "/admin/dashboard";
-      } else {
-        alert("Staff login will be added later");
+      } else if (loginType == "receptionist") {
+        const res = await axios.post(
+          "/auth/login/staff",
+          {
+            phone: formData.phone,
+          },
+          { withCredentials: true },
+        );
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            ...res.data.staff,
+            role: "receptionist",
+          }),
+        );
+
+        window.location.href = "/receptionist/dashboard";
       }
     } catch (err) {
       alert(err.response?.data?.message || "Login failed");

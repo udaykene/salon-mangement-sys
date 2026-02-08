@@ -49,3 +49,30 @@ export const LoginValidation = (req, res, next) => {
 
   next();
 };
+
+export const StaffLoginValidation = (req, res, next) => {
+  const schema = Joi.object({
+    phone: Joi.string()
+      .pattern(/^[0-9+ ]+$/)
+      .min(10)
+      .max(15)
+      .required()
+      .messages({
+        "string.pattern.base": "Phone number must contain only digits, +, and spaces",
+        "string.min": "Phone number must be at least 10 characters",
+        "string.max": "Phone number must not exceed 15 characters",
+        "any.required": "Phone number is required"
+      }),
+  });
+
+  const { error } = schema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details[0].message,
+    });
+  }
+
+  next();
+};

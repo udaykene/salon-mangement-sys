@@ -120,7 +120,7 @@ const Navbar = () => {
           {/* Desktop Navigation Links */}
           {isDesktop && (
             <div className="flex items-center gap-8">
-              {["About", "Projects", "Services", "Contact"].map((item) => (
+              {["About", "Projects", "Services", "Contact","Pricing"].map((item) => (
                 <Link
                   key={item}
                   to={`/${item.toLowerCase()}`}

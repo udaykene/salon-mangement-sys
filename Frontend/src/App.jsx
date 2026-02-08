@@ -36,6 +36,7 @@ import ReceptionistClients from './pages/ReceptionistClients';
 import ReceptionistServices from './pages/ReceptionistServices';
 import ReceptionistStaff from './pages/ReceptionistStaff';
 import ReceptionistNotifications from './pages/ReceptionistNotifications';
+import Pricing from './pages/Pricing.jsx'
 import AdminInventory from './pages/Inventory';
 const App = () => {
   const location = useLocation();
@@ -58,6 +59,7 @@ const App = () => {
               <Route path="/services" element={<Services />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/activity" element={<Activity />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegistrationPage />} />
               <Route path="/history" element={<History />} />
