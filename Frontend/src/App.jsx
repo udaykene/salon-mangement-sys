@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -29,22 +25,30 @@ import AdminOffers from "./pages/AdminOffers";
 import AdminNotifications from "./pages/AdminNotifications";
 import AdminSettings from "./pages/AdminSettings.jsx";
 import RegistrationPage from "./pages/RegistrationPage.jsx";
-import AdminBranches from './pages/AdminBranches';
-import { BranchProvider } from './context/BranchContext.jsx';
-import { StaffProvider } from './context/StaffContext.jsx'; // Import StaffProvider
-
+import AdminBranches from "./pages/AdminBranches";
+import ReceptionistDashboard from "./pages/ReceptionistDashboard.jsx";
+import { BranchProvider } from "./context/BranchContext.jsx";
+import { StaffProvider } from "./context/StaffContext.jsx"; // Import StaffProvider
+import ReceptionistCheckIn from './pages/ReceptionistCheckin';
+import ReceptionistWalkIns from './pages/ReceptionistWalkIns';
+import ReceptionistAppointments from './pages/ReceptionistAppointments';
+import ReceptionistClients from './pages/ReceptionistClients';
+import ReceptionistServices from './pages/ReceptionistServices';
+import ReceptionistStaff from './pages/ReceptionistStaff';
+import ReceptionistNotifications from './pages/ReceptionistNotifications';
+import AdminInventory from './pages/Inventory';
 const App = () => {
   const location = useLocation();
 
   // Check if current route is admin
   const isAdminRoute = location.pathname.startsWith("/admin");
-
+  const isReceptionistRoute = location.pathname.startsWith("/receptionist");
   return (
     <BranchProvider>
       <StaffProvider>
         <div className="min-h-screen bg-black flex flex-col">
-          {!isAdminRoute && <Navbar />}
-          
+          {(!isAdminRoute && !isReceptionistRoute) && <Navbar />}
+
           <main className="flex-1">
             <Routes>
               <Route path="/" element={<Home />} />
@@ -62,7 +66,10 @@ const App = () => {
               {/* Admin Routes */}
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/profile" element={<AdminProfile />} />
-              <Route path="/admin/appointments" element={<AdminAppointments />} />
+              <Route
+                path="/admin/appointments"
+                element={<AdminAppointments />}
+              />
               <Route path="/admin/clients" element={<AdminClients />} />
               <Route path="/admin/services" element={<AdminServices />} />
               <Route path="/admin/staff" element={<AdminStaff />} />
@@ -71,17 +78,42 @@ const App = () => {
                 path="/admin/revenue-reports"
                 element={<AdminRevenueReports />}
               />
-              <Route path="/admin/receptionist" element={<AdminReceptionists />} />
+              <Route
+                path="/admin/receptionist"
+                element={<AdminReceptionists />}
+              />
               <Route path="/admin/inbox" element={<AdminNotifications />} />
               <Route path="/admin/offers" element={<AdminOffers />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
 
+              {/* Receptionist Routes */}
+              <Route
+                path="/receptionist/dashboard"
+                element={<ReceptionistDashboard />}
+              />
+              <Route
+                path="/receptionist/appointments"
+                element={<ReceptionistAppointments />}
+              />
+              <Route
+                path="/receptionist/checkin"
+                element={<ReceptionistCheckIn />}
+              />
+              <Route path="/receptionist/walkins" element={<ReceptionistWalkIns/>}/>
+              <Route path="/receptionist/clients" element={<ReceptionistClients/>}/>
+              <Route path="/receptionist/services" element={<ReceptionistServices/>}/>
+              <Route path="/receptionist/staff" element={<ReceptionistStaff/>}/>
+              <Route path="/receptionist/notifications" element={<ReceptionistNotifications/>}/>
+              <Route path="/receptionist/inventory" element={<AdminInventory/>}/>
+
+
+              {/* Not Found */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
 
           {/* Footer only for NON-admin routes */}
-          {!isAdminRoute && <Footer />}
+          {(!isAdminRoute && !isReceptionistRoute) &&<Footer />}
         </div>
       </StaffProvider>
     </BranchProvider>

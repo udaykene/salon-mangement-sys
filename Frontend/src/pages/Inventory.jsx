@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import AdminLayout from "../components/AdminLayout";
+import ReceptionistLayout from './../components/ReceptionistLayout';
 
-const AdminInventory = () => {
+const Inventory = () => {
   const [stats, setStats] = useState({
     totalProducts: 248,
     lowStock: 23,
@@ -170,7 +170,7 @@ const AdminInventory = () => {
   });
 
   return (
-    <AdminLayout>
+    <ReceptionistLayout>
       <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
         {/* Header */}
         <div className="mb-8">
@@ -262,7 +262,7 @@ const AdminInventory = () => {
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Main Inventory Table */}
-          <div className="lg:col-span-3 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="lg:col-span-3 bg-white rounded-2xl shadow-lg border border-gray-100 ">
             <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -333,7 +333,7 @@ const AdminInventory = () => {
             </div>
 
             {/* Inventory Items */}
-            <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+            <div className="divide-y divide-gray-100 max-h-screen overflow-y-auto">
               {filteredItems.map((item) => (
                 <div
                   key={item.id}
@@ -497,8 +497,8 @@ const AdminInventory = () => {
           </div>
         </div>
       </main>
-    </AdminLayout>
+    </ReceptionistLayout>
   );
 };
 
-export default AdminInventory;
+export default Inventory;

@@ -1,10 +1,10 @@
 import React from "react";
-// import AdminSidebar from "./AdminSidebar";
+import ReceptionistSidebar from './ReceptionistSidebar';
 
-const StaffLayout = ({ children }) => {
+const ReceptionistLayout = ({ children }) => {
   return (
     <div className="min-h-screen bg-[#f4f7fe] flex"> {/* Added flex here */}
-      <AdminSidebar />
+      <ReceptionistSidebar/>
 
       <main className="flex-1 h-screen ">
         {children}
@@ -13,4 +13,4 @@ const StaffLayout = ({ children }) => {
   );
 };
 
-export default StaffLayout;
+export default ReceptionistLayout;

@@ -32,7 +32,7 @@ const LoginPage = () => {
 
         localStorage.setItem("user", JSON.stringify(res.data.owner));
         // alert(res.data.message);
-      window.location.href = "/admin/dashboard";
+        window.location.href = "/admin/dashboard";
       } else {
         alert("Staff login will be added later");
       }
@@ -92,15 +92,15 @@ const LoginPage = () => {
 
               <button
                 type="button"
-                onClick={() => handleLoginTypeChange("staff")}
+                onClick={() => handleLoginTypeChange("receptionist")}
                 className={`flex-1 py-3 rounded-lg font-semibold text-sm transition-all ${
-                  loginType === "staff"
+                  loginType === "receptionist"
                     ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 <i className="ri-team-line mr-2"></i>
-                Staff Login
+                Receptionist Login
               </button>
             </div>
 
@@ -174,7 +174,7 @@ const LoginPage = () => {
                   </div>
                   <p className="mt-2 text-xs text-gray-500">
                     <i className="ri-information-line mr-1"></i>
-                    Staff members login with registered phone number
+                    Receptionist login with registered phone number
                   </p>
                 </div>
               )}
@@ -208,7 +208,7 @@ const LoginPage = () => {
                 <i className="ri-login-box-line mr-2"></i>
                 {loginType === "owner"
                   ? "Sign In as Owner"
-                  : "Sign In as Staff"}
+                  : "Sign In as Receptionist"}
               </button>
             </form>
 
@@ -227,7 +227,7 @@ const LoginPage = () => {
             {loginType === "staff" && (
               <p className="text-center mt-6 text-sm text-gray-500">
                 <i className="ri-information-line mr-1"></i>
-                Staff accounts are created by the salon owner
+                Receptionist accounts are created by the salon owner
               </p>
             )}
           </div>
