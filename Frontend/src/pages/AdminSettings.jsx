@@ -1,9 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
+import axios from "axios";
 
 const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState("general");
   const [isSaving, setIsSaving] = useState(false);
+  const [subscriptionData, setSubscriptionData] = useState(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
+
+  // 🆕 Support URL parameters for direct tab navigation
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab && tabs.find(t => t.id === tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
 
   const [generalSettings, setGeneralSettings] = useState({
     salonName: "Bella Beauty Salon",
@@ -15,10 +27,67 @@ const AdminSettings = () => {
 
   const tabs = [
     { id: "general", label: "General", icon: "ri-settings-3-line" },
+    { id: "subscriptions", label: "Subscriptions", icon: "ri-vip-crown-line" },
     { id: "notifications", label: "Notifications", icon: "ri-notification-3-line" },
     { id: "security", label: "Security", icon: "ri-lock-line" },
     { id: "business", label: "Business", icon: "ri-briefcase-line" },
   ];
+
+  const plans = {
+    basic: { name: "Basic", maxBranches: 1, price: 29, color: "gray" },
+    standard: { name: "Standard", maxBranches: 5, price: 99, color: "rose" },
+    premium: { name: "Premium", maxBranches: 10, price: 199, color: "purple" },
+  };
+
+  // Fetch subscription data when subscriptions tab is active
+  useEffect(() => {
+    if (activeTab === "subscriptions") {
+      fetchSubscriptionData();
+    }
+  }, [activeTab]);
+
+  const fetchSubscriptionData = async () => {
+    try {
+      setLoadingSubscription(true);
+      const res = await axios.get("/api/subscriptions/current", {
+        withCredentials: true,
+      });
+      setSubscriptionData(res.data);
+    } catch (err) {
+      console.error("Error fetching subscription:", err);
+      alert(err.response?.data?.message || "Failed to load subscription data");
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
+  const handleUpgradePlan = async (newPlan) => {
+    const planName = plans[newPlan].name;
+    const confirmed = window.confirm(
+      `Are you sure you want to upgrade to the ${planName} plan?\n\n` +
+      `This will allow you to manage up to ${plans[newPlan].maxBranches} branches.\n` +
+      `Price: ₹${plans[newPlan].price}/user/year`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setLoadingSubscription(true);
+      const res = await axios.post(
+        "/api/subscriptions/upgrade",
+        { newPlan },
+        { withCredentials: true }
+      );
+      
+      alert(res.data.message);
+      await fetchSubscriptionData(); // Refresh subscription data
+    } catch (err) {
+      console.error("Error upgrading plan:", err);
+      alert(err.response?.data?.message || "Failed to upgrade plan");
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
 
   const handleSave = () => {
     setIsSaving(true);
@@ -44,23 +113,25 @@ const AdminSettings = () => {
                 Configure your salon preferences and manage your account
               </p>
             </div>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <i className="ri-loader-4-line animate-spin"></i>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <i className="ri-save-line"></i>
-                  Save Changes
-                </>
-              )}
-            </button>
+            {activeTab !== "subscriptions" && (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <i className="ri-loader-4-line animate-spin"></i>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <i className="ri-save-line"></i>
+                    Save Changes
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -194,6 +265,153 @@ const AdminSettings = () => {
                     />
                   </div>
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* Subscriptions Tab */}
+          {activeTab === "subscriptions" && (
+            <>
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-yellow-50">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <i className="ri-vip-crown-line text-amber-600"></i>
+                  Subscription Management
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Manage your plan and billing
+                </p>
+              </div>
+
+              <div className="p-6">
+                {loadingSubscription ? (
+                  <div className="flex items-center justify-center py-12">
+                    <i className="ri-loader-4-line animate-spin text-4xl text-rose-500"></i>
+                  </div>
+                ) : subscriptionData ? (
+                  <>
+                    {/* Current Plan Card */}
+                    <div className="mb-8 bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl p-6 border-2 border-rose-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Current Plan</p>
+                          <h3 className="text-2xl font-bold text-gray-900 capitalize">
+                            {subscriptionData.subscription?.plan || "Basic"} Plan
+                          </h3>
+                        </div>
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center">
+                          <i className="ri-vip-crown-fill text-white text-3xl"></i>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-600 mb-1">Branch Limit</p>
+                          <p className="text-xl font-bold text-gray-900">
+                            {subscriptionData.subscription?.maxBranches || 1}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-lg p-4">
+                          <p className="text-xs text-gray-600 mb-1">Branches Used</p>
+                          <p className="text-xl font-bold text-gray-900">
+                            {subscriptionData.currentBranchCount}
+                          </p>
+                        </div>
+                      </div>
+
+                      {subscriptionData.currentBranchCount >= (subscriptionData.subscription?.maxBranches || 1) && (
+                        <div className="bg-amber-100 border border-amber-300 rounded-lg p-3 flex items-start gap-2">
+                          <i className="ri-error-warning-line text-amber-600 text-lg mt-0.5"></i>
+                          <div>
+                            <p className="text-sm font-semibold text-amber-800">Branch Limit Reached</p>
+                            <p className="text-xs text-amber-700">Upgrade your plan to add more branches</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Available Plans */}
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Available Plans</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {Object.entries(plans).map(([key, plan]) => {
+                        const isCurrent = (subscriptionData.subscription?.plan || "basic") === key;
+                        const planOrder = ["basic", "standard", "premium"];
+                        const currentIndex = planOrder.indexOf(subscriptionData.subscription?.plan || "basic");
+                        const thisIndex = planOrder.indexOf(key);
+                        const canUpgrade = thisIndex > currentIndex;
+
+                        return (
+                          <div
+                            key={key}
+                            className={`rounded-xl border-2 p-6 transition-all ${
+                              isCurrent
+                                ? "border-rose-500 bg-gradient-to-br from-rose-50 to-pink-50 shadow-lg"
+                                : "border-gray-200 bg-white hover:border-rose-300"
+                            }`}
+                          >
+                            {isCurrent && (
+                              <div className="mb-3">
+                                <span className="bg-gradient-to-r from-rose-500 to-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                  CURRENT PLAN
+                                </span>
+                              </div>
+                            )}
+
+                            <h4 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h4>
+                            <div className="mb-4">
+                              <span className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-pink-500">
+                                ₹{plan.price}
+                              </span>
+                              <span className="text-sm text-gray-600">/user/year</span>
+                            </div>
+
+                            <div className="mb-4 space-y-2">
+                              <div className="flex items-center gap-2 text-sm text-gray-700">
+                                <i className="ri-checkbox-circle-fill text-green-500"></i>
+                                Up to {plan.maxBranches} Branch{plan.maxBranches > 1 ? "es" : ""}
+                              </div>
+                            </div>
+
+                            {canUpgrade ? (
+                              <button
+                                onClick={() => handleUpgradePlan(key)}
+                                disabled={loadingSubscription}
+                                className="w-full py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-lg hover:from-rose-600 hover:to-pink-600 transition-all disabled:opacity-50"
+                              >
+                                {loadingSubscription ? "Processing..." : "Upgrade"}
+                              </button>
+                            ) : (
+                              <button
+                                disabled
+                                className="w-full py-2.5 bg-gray-100 text-gray-400 font-bold rounded-lg cursor-not-allowed"
+                              >
+                                {isCurrent ? "Current Plan" : "Lower Plan"}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Info Note */}
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <i className="ri-information-line text-blue-600 text-xl mt-0.5"></i>
+                        <div>
+                          <p className="text-sm font-semibold text-blue-900 mb-1">Plan Upgrade Information</p>
+                          <p className="text-xs text-blue-700">
+                            • Upgrades are instant and take effect immediately<br/>
+                            • You can only upgrade to higher plans (no downgrades)<br/>
+                            • No payment gateway integrated yet - upgrades are free for testing
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    Failed to load subscription data
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -381,26 +599,28 @@ const AdminSettings = () => {
           )}
         </div>
 
-        {/* Save Button (Bottom) */}
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <>
-                <i className="ri-loader-4-line animate-spin text-xl"></i>
-                Saving Changes...
-              </>
-            ) : (
-              <>
-                <i className="ri-save-line text-xl"></i>
-                Save All Changes
-              </>
-            )}
-          </button>
-        </div>
+        {/* Save Button (Bottom) - Hide for subscriptions tab */}
+        {activeTab !== "subscriptions" && (
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? (
+                <>
+                  <i className="ri-loader-4-line animate-spin text-xl"></i>
+                  Saving Changes...
+                </>
+              ) : (
+                <>
+                  <i className="ri-save-line text-xl"></i>
+                  Save All Changes
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </main>
     </AdminLayout>
   );

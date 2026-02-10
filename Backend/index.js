@@ -8,6 +8,8 @@ import AuthRouter from "./src/routes/AuthRouter.js";
 import BranchRouter from './src/routes/BranchRouter.js'
 import StaffRouter from './src/routes/StaffRouter.js'
 import MongoStore from 'connect-mongo';
+import profileRoutes from './src/routes/profile.routes.js'
+import subscriptionRoutes from './src/routes/subscription.routes.js'
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +45,8 @@ app.use(express.static("public"));
 app.use("/auth", AuthRouter);
 app.use("/api/branches", BranchRouter);
 app.use("/api/staff", StaffRouter);
+app.use("/api/profile", profileRoutes);
+app.use("/api/subscriptions", subscriptionRoutes);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");

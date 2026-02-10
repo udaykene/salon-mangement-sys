@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import axios from "axios";
 
-
 const BranchContext = createContext();
 
 // Create an axios instance with base settings
@@ -48,7 +47,6 @@ export const BranchProvider = ({ children }) => {
       setBranches(data);
 
       // Restore saved selection or default to first branch
-      // Inside fetchBranches in BranchContext.js
       const savedBranchId = localStorage.getItem("currentBranchId");
       if (savedBranchId) {
         const saved = data.find((b) => b._id === savedBranchId);
@@ -91,10 +89,28 @@ export const BranchProvider = ({ children }) => {
       setCurrentBranch(newBranch);
       return newBranch;
     } catch (err) {
-      // 💡 Improved error extraction
+      // 🆕 Enhanced error handling for subscription limits
+      const errorResponse = err.response?.data;
+      
+      if (errorResponse?.limitReached) {
+        // This is a subscription limit error
+        const errorMessage = errorResponse.message;
+        const errorDetails = {
+          limitReached: true,
+          currentPlan: errorResponse.currentPlan,
+          maxBranches: errorResponse.maxBranches,
+        };
+        
+        // Throw error with details for UI to handle
+        const error = new Error(errorMessage);
+        error.details = errorDetails;
+        throw error;
+      }
+      
+      // Regular error
       const errorMessage =
-        err.response?.data?.message || err.message || "Unknown error";
-      throw errorMessage;
+        errorResponse?.message || err.message || "Unknown error";
+      throw new Error(errorMessage);
     }
   };
 
@@ -105,7 +121,7 @@ export const BranchProvider = ({ children }) => {
       const updatedBranch = res.data;
 
       setBranches((prev) =>
-        prev.map((b) => (b._id === branchId ? updatedBranch : b)),
+        prev.map((b) => (b._id === branchId ? updatedBranch : b))
       );
 
       if (currentBranch?._id === branchId) {
@@ -123,7 +139,7 @@ export const BranchProvider = ({ children }) => {
       const updatedBranch = res.data;
 
       setBranches((prev) =>
-        prev.map((b) => (b._id === branchId ? updatedBranch : b)),
+        prev.map((b) => (b._id === branchId ? updatedBranch : b))
       );
 
       if (currentBranch?._id === branchId) {

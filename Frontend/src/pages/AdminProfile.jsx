@@ -51,7 +51,7 @@ const AdminProfile = () => {
         }),
         isActive: data.isActive ?? true,
       };
-      
+
       setProfileData(formattedData);
       setOriginalData(formattedData);
     } catch (error) {
@@ -99,7 +99,7 @@ const AdminProfile = () => {
         }),
         isActive: updatedData.isActive,
       };
-      
+
       setProfileData(formattedData);
       setOriginalData(formattedData);
       setIsEditing(false);
@@ -111,7 +111,11 @@ const AdminProfile = () => {
   };
 
   const handlePasswordChange = async () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
       alert("Please fill in all password fields");
       return;
     }
@@ -207,9 +211,6 @@ const AdminProfile = () => {
                 <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
                     {profileData.role}
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-pink-100 text-pink-700 border border-pink-200">
-                    {profileData.department}
                   </span>
                   <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700 border border-purple-200">
                     <i className="ri-calendar-line mr-1"></i>
@@ -313,16 +314,6 @@ const AdminProfile = () => {
                 </p>
               </div>
 
-              {/* Department Field */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
-                  Department
-                </label>
-                <p className="text-base font-medium text-gray-900 bg-gray-50 rounded-xl p-3 border border-gray-200">
-                  {profileData.department}
-                </p>
-              </div>
-
               {/* Join Date Field */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
@@ -388,7 +379,8 @@ const AdminProfile = () => {
                 textColor: "text-green-600",
                 borderColor: "border-green-200",
                 hoverBg: "hover:bg-green-500",
-                onClick: () => alert("Two-Factor Authentication feature coming soon!"),
+                onClick: () =>
+                  alert("Two-Factor Authentication feature coming soon!"),
               },
               {
                 icon: "ri-smartphone-line",

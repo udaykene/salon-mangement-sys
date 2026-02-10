@@ -3,6 +3,7 @@ import AdminLayout from "../components/AdminLayout";
 import AddBranchForm from "../components/AddBranchForm.jsx";
 import EditBranchForm from "../components/EditBranchForm.jsx";
 import { useBranch } from "../context/BranchContext";
+import { useStaff } from "../context/StaffContext";
 
 const AdminBranches = () => {
   const {
@@ -16,6 +17,7 @@ const AdminBranches = () => {
     deleteBranch,
     switchBranch,
   } = useBranch();
+  const { staff } = useStaff();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -23,6 +25,8 @@ const AdminBranches = () => {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [branchToDelete, setBranchToDelete] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 🆕 Loading state
+  const [formError, setFormError] = useState(null); // 🆕 Error state
 
   const [formData, setFormData] = useState({
     name: "",
@@ -35,6 +39,7 @@ const AdminBranches = () => {
     openingTime: "",
     closingTime: "",
     workingDays: [],
+    staffs: [],
     isActive: true,
   });
 
@@ -44,6 +49,15 @@ const AdminBranches = () => {
     totalStaff: 0,
     totalRevenue: 0,
   });
+
+  const staffCountByBranch = React.useMemo(() => {
+    const map = {};
+    staff.forEach((s) => {
+      const key = String(s.branchId);
+      map[key] = (map[key] || 0) + 1;
+    });
+    return map;
+  }, [staff]);
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -91,7 +105,7 @@ const AdminBranches = () => {
     setStats({
       totalBranches: branches.length,
       activeBranches: branches.filter((b) => b.isActive).length,
-      totalStaff: 0, // You can calculate this based on actual staff data
+      totalStaff: staff.length, // You can calculate this based on actual staff data
       totalRevenue: 0, // You can calculate this based on actual revenue data
     });
   }, [branches]);
@@ -109,6 +123,8 @@ const AdminBranches = () => {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+    // 🆕 Clear error when user starts typing
+    if (formError) setFormError(null);
   };
 
   const handleWorkingDayToggle = (day) => {
@@ -122,6 +138,10 @@ const AdminBranches = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🆕 Clear previous errors
+    setFormError(null);
+    setIsSubmitting(true);
 
     // Quick UI validation check
     if (formData.workingDays.length < 1) {
@@ -146,7 +166,10 @@ const AdminBranches = () => {
         isActive: true,
       });
     } catch (err) {
+      setFormError(error);
       alert(`Error creating branch: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -199,6 +222,12 @@ const AdminBranches = () => {
     } catch (err) {
       alert(`Error updating branch: ${err.message || err}`);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setFormError(null); // 🆕 Clear error when closing
+    // Optionally reset form data here
   };
 
   const handleDeleteClick = (branchId, event) => {
@@ -327,8 +356,10 @@ const AdminBranches = () => {
                 formData={formData}
                 onChange={handleInputChange}
                 onSubmit={handleSubmit}
-                onClose={() => setShowAddModal(false)}
+                onClose={handleCloseModal}
                 onToggleDay={handleWorkingDayToggle}
+                error={formError} // 🆕 Pass error
+                isSubmitting={isSubmitting} // 🆕 Pass loading state
               />
             </div>
           </div>
@@ -607,7 +638,7 @@ const AdminBranches = () => {
                   )}
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <i className="ri-team-line text-gray-400"></i>
-                    <span>0 staff</span>
+                    <span>{staffCountByBranch[branch._id] || 0} staff</span>
                   </div>
                 </div>
 
@@ -644,8 +675,10 @@ const AdminBranches = () => {
               formData={formData}
               onChange={handleInputChange}
               onSubmit={handleSubmit}
-              onClose={() => setShowAddModal(false)}
+              onClose={handleCloseModal}
               onToggleDay={handleWorkingDayToggle}
+              error={formError} // 🆕 Pass error
+              isSubmitting={isSubmitting} // 🆕 Pass loading state
             />
           </div>
         </div>

@@ -99,7 +99,7 @@ const Pricing = () => {
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-pink-500">
-                      ${plan.price}
+                      &#8377;{plan.price}
                     </span>
                     <div className="flex flex-col">
                     <span className="text-gray-600 text-sm">per user / per year</span>

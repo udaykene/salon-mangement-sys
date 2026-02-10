@@ -24,10 +24,16 @@ router.post("/register", SignUpValidation, async (req, res) => {
       email,
       phone,
       password,
+      subscription: {
+        plan: "basic",
+        maxBranches: 1,
+        startDate: new Date(),
+      },
     });
 
     // 🔥 AUTO LOGIN
     req.session.ownerId = owner._id;
+    req.session.role = "admin";
     res.status(201).json({
       success: true,
       message: "Owner registered & LOgged in ",
@@ -55,6 +61,7 @@ router.post("/login", LoginValidation, async (req, res) => {
 
     // 🔥 create session (same as signup)
     req.session.ownerId = owner._id;
+    req.session.role = "admin";
 
     // Remove password from the object before sending to frontend
     const ownerData = owner.toObject();
@@ -75,24 +82,24 @@ router.post("/login/staff", StaffLoginValidation, async (req, res) => {
 
     // Find staff by phone number
     const staff = await Staff.findOne({ phone });
-    
+
     if (!staff) {
-      return res.status(400).json({ 
-        message: "Staff member not found. Please check your phone number." 
+      return res.status(400).json({
+        message: "Staff member not found. Please check your phone number.",
       });
     }
 
     // Verify role is receptionist
     if (staff.role !== "Receptionist") {
-      return res.status(403).json({ 
-        message: "Access denied. Only receptionists can login here." 
+      return res.status(403).json({
+        message: "Access denied. Only receptionists can login here.",
       });
     }
 
     // Check if staff is active
     if (staff.status !== "active") {
-      return res.status(403).json({ 
-        message: `Your account is ${staff.status}. Please contact your manager.` 
+      return res.status(403).json({
+        message: `Your account is ${staff.status}. Please contact your manager.`,
       });
     }
 
@@ -117,15 +124,39 @@ router.post("/login/staff", StaffLoginValidation, async (req, res) => {
   }
 });
 
+router.get("/me", async (req, res) => {
+  try {
+    if (!req.session.role) {
+      return res.json({ loggedIn: false });
+    }
 
+    // OWNER / ADMIN
+    if (req.session.role === "admin") {
+      return res.json({
+        loggedIn: true,
+        role: "admin",
+      });
+    }
 
+    // RECEPTIONIST
+    if (req.session.role === "receptionist") {
+      const staff = await Staff.findById(req.session.staffId).populate(
+        "branchId",
+        "name",
+      );
 
+      return res.json({
+        loggedIn: true,
+        role: "receptionist",
+        branch: staff?.branchId || null,
+      });
+    }
 
-router.get("/me", (req, res) => {
-  if (!req.session.ownerId) {
     return res.json({ loggedIn: false });
+  } catch (err) {
+    console.error("Auth me error:", err);
+    res.status(500).json({ loggedIn: false });
   }
-  res.json({ loggedIn: true });
 });
 
 router.post("/logout", (req, res) => {

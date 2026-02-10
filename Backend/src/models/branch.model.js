@@ -24,6 +24,13 @@ const branchSchema = new mongoose.Schema(
 
     workingDays: [String], // ["Mon","Tue","Wed"]
 
+    staffs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Staff",
+      },
+    ],
+
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

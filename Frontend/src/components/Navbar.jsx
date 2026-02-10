@@ -11,6 +11,8 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 1023);
   const [scrolled, setScrolled] = useState(false);
+  const [role, setRole] = useState(null);
+  const [receptionistBranch, setReceptionistBranch] = useState(null);
 
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
@@ -58,8 +60,18 @@ const Navbar = () => {
   useEffect(() => {
     axios
       .get("/auth/me", { withCredentials: true })
-      .then((res) => setIsLoggedIn(res.data.loggedIn))
-      .catch(() => setIsLoggedIn(false));
+      .then((res) => {
+        setIsLoggedIn(res.data.loggedIn);
+        setRole(res.data.role || null);
+
+        if (res.data.role === "receptionist") {
+          setReceptionistBranch(res.data.branch);
+        }
+      })
+      .catch(() => {
+        setIsLoggedIn(false);
+        setRole(null);
+      });
   }, []);
 
   // Close dropdown when clicking outside
@@ -120,16 +132,18 @@ const Navbar = () => {
           {/* Desktop Navigation Links */}
           {isDesktop && (
             <div className="flex items-center gap-8">
-              {["About", "Projects", "Services", "Contact","Pricing"].map((item) => (
-                <Link
-                  key={item}
-                  to={`/${item.toLowerCase()}`}
-                  className="text-gray-700 hover:text-rose-600 transition-colors font-medium relative group"
-                >
-                  {item === "Projects" ? "Gallery" : item}
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-pink-500 group-hover:w-full transition-all duration-300"></span>
-                </Link>
-              ))}
+              {["About", "Projects", "Services", "Contact", "Pricing"].map(
+                (item) => (
+                  <Link
+                    key={item}
+                    to={`/${item.toLowerCase()}`}
+                    className="text-gray-700 hover:text-rose-600 transition-colors font-medium relative group"
+                  >
+                    {item === "Projects" ? "Gallery" : item}
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-pink-500 group-hover:w-full transition-all duration-300"></span>
+                  </Link>
+                ),
+              )}
             </div>
           )}
 
@@ -149,23 +163,26 @@ const Navbar = () => {
                 /* Everything after LOGIN */
                 <>
                   <Link
-                    to="/admin/dashboard"
+                    to={
+                      role === "receptionist"
+                        ? "/receptionist/dashboard"
+                        : "/admin/dashboard"
+                    }
                     className="text-rose-600 hover:text-rose-700 transition-colors font-medium px-3 py-2"
                   >
                     Dashboard
                   </Link>
 
                   {/* Switch Branch Button - Only show if branches exist */}
-                  {branches.length > 0 && (
+                  {/* ADMIN: Branch Switcher */}
+                  {role === "admin" && branches.length > 0 && (
                     <div className="relative" ref={branchDropdownRef}>
                       <button
                         onClick={() => setBranchDropdownOpen((o) => !o)}
                         className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-full shadow-md shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 transition-all flex items-center gap-2"
                       >
                         <i className="ri-building-line"></i>
-                        {currentBranch
-                          ? currentBranch.name
-                          : "Switch Branch"}
+                        {currentBranch ? currentBranch.name : "Switch Branch"}
                         <i
                           className={`ri-arrow-down-s-line transition-transform ${
                             branchDropdownOpen ? "rotate-180" : ""
@@ -191,13 +208,16 @@ const Navbar = () => {
                               )}
                             </button>
                           ))}
-                          {branches.length === 0 && (
-                            <div className="px-5 py-3 text-gray-500 text-sm text-center">
-                              No branches available
-                            </div>
-                          )}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* RECEPTIONIST: Read-only branch */}
+                  {role === "receptionist" && receptionistBranch && (
+                    <div className="px-5 py-2.5 bg-rose-100 text-rose-700 font-semibold rounded-full flex items-center gap-2">
+                      <i className="ri-building-line"></i>
+                      {receptionistBranch.name}
                     </div>
                   )}
 
@@ -328,7 +348,7 @@ const Navbar = () => {
                         value={currentBranch?._id || ""}
                         onChange={(e) => {
                           const selected = branches.find(
-                            (b) => b._id === e.target.value
+                            (b) => b._id === e.target.value,
                           );
                           if (selected) {
                             handleBranchSwitch(selected);

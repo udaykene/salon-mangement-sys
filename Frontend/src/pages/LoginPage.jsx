@@ -9,6 +9,9 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginType, setLoginType] = useState("owner");
 
+  // 🔹 ADDED
+  const [error, setError] = useState("");
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -18,6 +21,7 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(""); // 🔹 ADDED
 
     try {
       if (loginType === "owner") {
@@ -27,22 +31,22 @@ const LoginPage = () => {
             email: formData.email,
             password: formData.password,
           },
-          { withCredentials: true },
+          { withCredentials: true }
         );
 
         localStorage.setItem(
           "user",
-          JSON.stringify({ ...res.data.owner, role: "owner" }),
+          JSON.stringify({ ...res.data.owner, role: "owner" })
         );
-        // alert(res.data.message);
+
         window.location.href = "/admin/dashboard";
-      } else if (loginType == "receptionist") {
+      } else if (loginType === "receptionist") {
         const res = await axios.post(
           "/auth/login/staff",
           {
             phone: formData.phone,
           },
-          { withCredentials: true },
+          { withCredentials: true }
         );
 
         localStorage.setItem(
@@ -50,13 +54,18 @@ const LoginPage = () => {
           JSON.stringify({
             ...res.data.staff,
             role: "receptionist",
-          }),
+          })
         );
 
         window.location.href = "/receptionist/dashboard";
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      // 🔹 MODIFIED (NO alert)
+      if (loginType === "owner") {
+        setError("Invalid email or password");
+      } else {
+        setError(err.response?.data?.message || "Login failed");
+      }
     }
   };
 
@@ -71,6 +80,7 @@ const LoginPage = () => {
 
   const handleLoginTypeChange = (type) => {
     setLoginType(type);
+    setError(""); // 🔹 ADDED
     setFormData({
       email: "",
       password: "",
@@ -167,11 +177,20 @@ const LoginPage = () => {
                       >
                         <i
                           className={
-                            showPassword ? "ri-eye-off-line" : "ri-eye-line"
+                            showPassword
+                              ? "ri-eye-off-line"
+                              : "ri-eye-line"
                           }
                         ></i>
                       </button>
                     </div>
+
+                    {/* 🔹 ADDED ERROR (OWNER) */}
+                    {error && (
+                      <p className="mt-2 text-sm text-red-600 font-medium">
+                        {error}
+                      </p>
+                    )}
                   </div>
                 </>
               ) : (
@@ -191,6 +210,14 @@ const LoginPage = () => {
                       required
                     />
                   </div>
+
+                  {/* 🔹 ADDED ERROR (RECEPTIONIST) */}
+                  {error && (
+                    <p className="mt-2 text-sm text-red-600 font-medium">
+                      {error}
+                    </p>
+                  )}
+
                   <p className="mt-2 text-xs text-gray-500">
                     <i className="ri-information-line mr-1"></i>
                     Receptionist login with registered phone number

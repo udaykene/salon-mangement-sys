@@ -2,31 +2,55 @@ import React, { useState, useEffect } from "react";
 import Certifications from "../components/Certifications";
 
 const SalonProfile = () => {
-  const [owner, setOwner] = useState({
+  const [profile, setProfile] = useState({
     name: "",
     email: "",
     phone: "",
     isActive: true,
     createdAt: "",
+    roleLabel:"",
+    branchName:"",
   });
+  const [role, setRole] = useState("");
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
-  // Simulated data fetch - replace with actual API call
   useEffect(() => {
-    // TODO: Fetch owner data from your backend
-    // Example: fetch('/api/owner/profile').then(res => res.json()).then(data => setOwner(data))
-    
-    // Mock data for now
-    setOwner({
-      name: "Uday Kene",
-      email: "uday.kene@example.com",
-      phone: "+91 98765 43210",
-      isActive: true,
-      createdAt: "2024-01-15T10:30:00Z",
-    });
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/profile", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!res.ok) {
+          throw new Error("Not authenticated");
+        }
+
+        const data = await res.json();
+
+        // 🚫 Block receptionist from owner profile
+        // if (data.role !== "admin") {
+        //   throw new Error("Unauthorized access");
+        // }
+
+        setProfile(data.profile);
+        setRole(data.role);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || "Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
   }, []);
 
   const getInitials = (name) => {
+    if (!name) return "OW";
     return name
       .split(" ")
       .map((word) => word[0])
@@ -36,12 +60,31 @@ const SalonProfile = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
   };
+
+  // ⏳ Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-lg font-semibold">
+        Loading profile...
+      </div>
+    );
+  }
+
+  // ❌ Error / Unauthorized
+  if (error) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-red-600 font-semibold">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white w-full overflow-x-hidden">
@@ -67,7 +110,7 @@ const SalonProfile = () => {
             </span>
           </h1>
           <p className="text-gray-300 text-lg">
-            Manage your salon owner account and information
+            Manage your salon account and information
           </p>
         </div>
       </div>
@@ -86,7 +129,7 @@ const SalonProfile = () => {
 
             <div className="absolute -bottom-16 left-12">
               <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-rose-500 to-pink-500 border-4 border-white flex items-center justify-center text-4xl text-white font-bold shadow-2xl">
-                {owner.name ? getInitials(owner.name) : "OW"}
+                {getInitials(profile.name)}
               </div>
             </div>
           </div>
@@ -96,21 +139,31 @@ const SalonProfile = () => {
             <div className="flex justify-between items-start mb-8 border-b pb-8">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                  {owner.name || "Loading..."}
+                  {profile.name}
                 </h2>
                 <div className="flex gap-2 items-center">
+                  {/* Active / Inactive */}
                   <span
                     className={`inline-block px-3 py-1 text-white text-sm font-bold rounded-full ${
-                      owner.isActive
+                      profile.isActive
                         ? "bg-gradient-to-r from-green-500 to-emerald-500"
                         : "bg-gradient-to-r from-gray-500 to-gray-600"
                     }`}
                   >
-                    {owner.isActive ? "✓ Active" : "⏸ Inactive"}
+                    {profile.isActive ? "✓ Active" : "⏸ Inactive"}
                   </span>
+
+                  {/* Role */}
                   <span className="inline-block px-3 py-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-bold rounded-full">
-                    Salon Owner
+                    {profile.roleLabel}
                   </span>
+
+                  {/* Branch – ONLY for receptionist */}
+                  {role === "receptionist" && profile.branchName && (
+                    <span className="inline-block px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold rounded-full">
+                      {profile.branchName}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -131,13 +184,15 @@ const SalonProfile = () => {
                 <div className="p-6 bg-rose-50 rounded-xl border border-rose-100">
                   <p className="text-sm font-bold text-rose-600 mb-1">Email</p>
                   <p className="font-semibold text-gray-900">
-                    {owner.email || "Not provided"}
+                    {profile.email || "Not provided"}
                   </p>
                 </div>
                 <div className="p-6 bg-purple-50 rounded-xl border border-purple-100">
-                  <p className="text-sm font-bold text-purple-600 mb-1">Phone</p>
+                  <p className="text-sm font-bold text-purple-600 mb-1">
+                    Phone
+                  </p>
                   <p className="font-semibold text-gray-900">
-                    {owner.phone || "Not provided"}
+                    {profile.phone || "Not provided"}
                   </p>
                 </div>
                 <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
@@ -145,7 +200,7 @@ const SalonProfile = () => {
                     Account Status
                   </p>
                   <p className="font-semibold text-gray-900">
-                    {owner.isActive ? "Active" : "Inactive"}
+                    {profile.isActive ? "Active" : "Inactive"}
                   </p>
                 </div>
                 <div className="p-6 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -153,7 +208,7 @@ const SalonProfile = () => {
                     Member Since
                   </p>
                   <p className="font-semibold text-gray-900">
-                    {owner.createdAt ? formatDate(owner.createdAt) : "N/A"}
+                    {formatDate(profile.createdAt)}
                   </p>
                 </div>
               </div>
@@ -172,7 +227,6 @@ const SalonProfile = () => {
         </div>
       </div>
 
-      {/* Trust Badges / Certifications */}
       <Certifications />
     </div>
   );
