@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Certifications from "../components/Certifications";
+import { useAuth } from "../context/AuthContext";
 
 const SalonProfile = () => {
   const [profile, setProfile] = useState({
@@ -8,49 +9,47 @@ const SalonProfile = () => {
     phone: "",
     isActive: true,
     createdAt: "",
-    roleLabel:"",
-    branchName:"",
+    roleLabel: "",
+    branchName: "",
   });
-  const [role, setRole] = useState("");
-  
-  const [loading, setLoading] = useState(true);
+  const { user, role, loading, logout } = useAuth();
   const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch("/api/profile", {
-          method: "GET",
-          credentials: "include",
-        });
+  // useEffect(() => {
+  //   const fetchProfile = async () => {
+  //     try {
+  //       const res = await fetch("/api/profile", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       });
 
-        if (!res.ok) {
-          throw new Error("Not authenticated");
-        }
+  //       if (!res.ok) {
+  //         throw new Error("Not authenticated");
+  //       }
 
-        const data = await res.json();
+  //       const data = await res.json();
 
-        // 🚫 Block receptionist from owner profile
-        // if (data.role !== "admin") {
-        //   throw new Error("Unauthorized access");
-        // }
+  //       // 🚫 Block receptionist from owner profile
+  //       // if (data.role !== "admin") {
+  //       //   throw new Error("Unauthorized access");
+  //       // }
 
-        setProfile(data.profile);
-        setRole(data.role);
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Failed to load profile");
-      } finally {
-        setLoading(false);
-      }
-    };
+  //       setProfile(data.profile);
+  //       setRole(data.role);
+  //     } catch (err) {
+  //       console.error(err);
+  //       setError(err.message || "Failed to load profile");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchProfile();
-  }, []);
+  //   fetchProfile();
+  // }, []);
 
   const getInitials = (name) => {
-    if (!name) return "OW";
+    if (!name) return "US";
     return name
       .split(" ")
       .map((word) => word[0])
@@ -73,6 +72,20 @@ const SalonProfile = () => {
     return (
       <div className="flex justify-center items-center min-h-screen text-lg font-semibold">
         Loading profile...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col justify-center items-center min-h-screen text-gray-600 font-semibold">
+        <p>No profile data found.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-rose-500 mt-2 underline"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -101,16 +114,16 @@ const SalonProfile = () => {
 
         <div className="relative max-w-7xl mx-auto text-center">
           <span className="inline-block mb-3 px-4 py-1.5 rounded-full bg-rose-500/20 border border-rose-300/30 text-rose-200 text-sm font-medium">
-            ✨ Owner Profile
+            ✨ {role === "admin" ? "Owner Central" : "Staff Portal"}
           </span>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
-            My{" "}
+            {role === "admin" ? "Salon" : "My"}{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-300">
               Profile
             </span>
           </h1>
           <p className="text-gray-300 text-lg">
-            Manage your salon account and information
+            Welcome back, {user.name.split(" ")[0]}!
           </p>
         </div>
       </div>
@@ -129,7 +142,7 @@ const SalonProfile = () => {
 
             <div className="absolute -bottom-16 left-12">
               <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-rose-500 to-pink-500 border-4 border-white flex items-center justify-center text-4xl text-white font-bold shadow-2xl">
-                {getInitials(profile.name)}
+                {getInitials(user.name)}
               </div>
             </div>
           </div>
@@ -139,40 +152,48 @@ const SalonProfile = () => {
             <div className="flex justify-between items-start mb-8 border-b pb-8">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                  {profile.name}
+                  {user.name}
                 </h2>
                 <div className="flex gap-2 items-center">
                   {/* Active / Inactive */}
                   <span
                     className={`inline-block px-3 py-1 text-white text-sm font-bold rounded-full ${
-                      profile.isActive
+                      user.isActive
                         ? "bg-gradient-to-r from-green-500 to-emerald-500"
                         : "bg-gradient-to-r from-gray-500 to-gray-600"
                     }`}
                   >
-                    {profile.isActive ? "✓ Active" : "⏸ Inactive"}
+                    {user.isActive ? "✓ Active" : "⏸ Inactive"}
                   </span>
 
                   {/* Role */}
                   <span className="inline-block px-3 py-1 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-bold rounded-full">
-                    {profile.roleLabel}
+                    {user.roleLabel}
                   </span>
 
                   {/* Branch – ONLY for receptionist */}
-                  {role === "receptionist" && profile.branchName && (
+                  {role === "receptionist" && user.branchName && (
                     <span className="inline-block px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-bold rounded-full">
-                      {profile.branchName}
+                      {user.branchName}
                     </span>
                   )}
                 </div>
               </div>
 
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="px-8 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-              >
-                ✏️ Edit Profile
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-all"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={logout}
+                  className="px-6 py-3 bg-rose-50 text-rose-600 font-bold rounded-xl hover:bg-rose-100 transition-all"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
 
             {/* Personal Info */}
@@ -184,23 +205,15 @@ const SalonProfile = () => {
                 <div className="p-6 bg-rose-50 rounded-xl border border-rose-100">
                   <p className="text-sm font-bold text-rose-600 mb-1">Email</p>
                   <p className="font-semibold text-gray-900">
-                    {profile.email || "Not provided"}
+                    {user.email || "Not provided"}
                   </p>
                 </div>
                 <div className="p-6 bg-purple-50 rounded-xl border border-purple-100">
                   <p className="text-sm font-bold text-purple-600 mb-1">
-                    Phone
+                    Phone Number
                   </p>
                   <p className="font-semibold text-gray-900">
-                    {profile.phone || "Not provided"}
-                  </p>
-                </div>
-                <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-sm font-bold text-blue-600 mb-1">
-                    Account Status
-                  </p>
-                  <p className="font-semibold text-gray-900">
-                    {profile.isActive ? "Active" : "Inactive"}
+                    {user.phone || "Not provided"}
                   </p>
                 </div>
                 <div className="p-6 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -208,20 +221,36 @@ const SalonProfile = () => {
                     Member Since
                   </p>
                   <p className="font-semibold text-gray-900">
-                    {formatDate(profile.createdAt)}
+                    {formatDate(user.createdAt)}
+                  </p>
+                </div>
+                <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">
+                    Role Type
+                  </p>
+                  <p className="font-semibold text-gray-900 capitalize">
+                    {role}
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="mt-12 flex gap-4">
-              <button className="flex-1 px-6 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl hover:shadow-lg transition-shadow">
-                🏪 Manage Salon
-              </button>
-              <button className="flex-1 px-6 py-4 border-2 border-rose-500 text-rose-500 font-bold rounded-xl hover:bg-rose-50 transition-colors">
-                📊 View Analytics
-              </button>
+            <div className="mt-12 flex flex-col sm:flex-row gap-4">
+              {role === "admin" ? (
+                <>
+                  <button className="flex-1 px-6 py-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-xl shadow-lg hover:shadow-rose-200 transition-all">
+                    🏪 Manage My Branches
+                  </button>
+                  <button className="flex-1 px-6 py-4 border-2 border-rose-500 text-rose-500 font-bold rounded-xl hover:bg-rose-50 transition-colors">
+                    📊 Business Analytics
+                  </button>
+                </>
+              ) : (
+                <button className="flex-1 px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl shadow-lg transition-all">
+                  📅 View Today's Appointments
+                </button>
+              )}
             </div>
           </div>
         </div>

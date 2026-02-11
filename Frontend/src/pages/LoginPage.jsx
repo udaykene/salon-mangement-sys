@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Certifications from "../components/Certifications";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
 const LoginPage = () => {
   const navigate = useNavigate();
-
+  const { login, staffLogin } = useAuth(); // 2. Consume context
   const [showPassword, setShowPassword] = useState(false);
   const [loginType, setLoginType] = useState("owner");
 
@@ -25,39 +26,40 @@ const LoginPage = () => {
 
     try {
       if (loginType === "owner") {
-        const res = await axios.post(
-          "/auth/login",
-          {
-            email: formData.email,
-            password: formData.password,
-          },
-          { withCredentials: true }
-        );
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify({ ...res.data.owner, role: "owner" })
-        );
-
+        // const res = await axios.post(
+        //   "/auth/login",
+        //   {
+        //     email: formData.email,
+        //     password: formData.password,
+        //   },
+        //   { withCredentials: true }
+        // );
+        // localStorage.setItem(
+        //   "user",
+        //   JSON.stringify({ ...res.data.owner, role: "owner" })
+        // );
+        
+        await login(formData.email, formData.password);
         window.location.href = "/admin/dashboard";
-      } else if (loginType === "receptionist") {
-        const res = await axios.post(
-          "/auth/login/staff",
-          {
-            phone: formData.phone,
-          },
-          { withCredentials: true }
-        );
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            ...res.data.staff,
-            role: "receptionist",
-          })
-        );
-
+        // navigate("/admin/dashboard");
+      } else {
+        await staffLogin(formData.phone);
         window.location.href = "/receptionist/dashboard";
+        // const res = await axios.post(
+        //   "/auth/login/staff",
+        //   {
+        //     phone: formData.phone,
+        //   },
+        //   { withCredentials: true },
+        // );
+        // localStorage.setItem(
+        //   "user",
+        //   JSON.stringify({
+        //     ...res.data.staff,
+        //     role: "receptionist",
+        //   }),
+        // );
+        // window.location.href = "/receptionist/dashboard";
       }
     } catch (err) {
       // 🔹 MODIFIED (NO alert)
@@ -177,9 +179,7 @@ const LoginPage = () => {
                       >
                         <i
                           className={
-                            showPassword
-                              ? "ri-eye-off-line"
-                              : "ri-eye-line"
+                            showPassword ? "ri-eye-off-line" : "ri-eye-line"
                           }
                         ></i>
                       </button>
