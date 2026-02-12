@@ -37,7 +37,7 @@ router.get("/", async (req, res) => {
     // ================= RECEPTIONIST PROFILE =================
     if (role === "receptionist") {
       const staff = await Staff.findById(staffId).select(
-        "name phone email status createdAt",
+        "name phone email status createdAt allowedTabs",
       );
 
       if (!staff) {
@@ -56,6 +56,7 @@ router.get("/", async (req, res) => {
           createdAt: staff.createdAt,
           roleLabel: "Receptionist",
           branchName: branch?.name || null,
+          allowedTabs: staff.allowedTabs || [],
         },
       });
     }

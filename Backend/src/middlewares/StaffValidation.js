@@ -18,7 +18,7 @@ export const createStaffSchema = Joi.object({
 
   role: Joi.string().trim().required(),
 
-  // Comes as "Haircut, Color" from form → you’ll split before saving
+  // Comes as "Haircut, Color" from form → you'll split before saving
   specialization: Joi.array().items(Joi.string().trim().min(1)).optional(),
 
   salary: Joi.number().min(0).required(),
@@ -38,4 +38,22 @@ export const createStaffSchema = Joi.object({
   status: Joi.string()
     .valid("active", "on-leave", "inactive")
     .default("active"),
+
+  // NEW: Validate allowedTabs array
+  allowedTabs: Joi.array()
+    .items(
+      Joi.string().valid(
+        "dashboard",
+        "appointments",
+        "inventory",
+        "check-in-out",
+        "walk-ins",
+        "clients",
+        "services",
+        "staff-availability",
+        "notifications"
+      )
+    )
+    .min(2)
+    .optional(),
 });

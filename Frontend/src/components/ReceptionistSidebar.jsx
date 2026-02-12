@@ -1,57 +1,22 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { SIDEBAR_TABS } from "../constants/sidebarTabs";
 
 const ReceptionistSidebar = () => {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
 
-  const menuItems = [
-    {
-      title: "Dashboard",
-      icon: "ri-dashboard-3-line",
-      path: "/receptionist/dashboard",
-    },
-    {
-      title: "Appointments",
-      icon: "ri-calendar-check-line",
-      path: "/receptionist/appointments",
-    },
-    {
-      title: "Inventory",
-      icon: "ri-inbox-archive-line",
-      path: "/receptionist/inventory",
-    },
-    {
-      title: "Check In/Out",
-      icon: "ri-login-circle-line",
-      path: "/receptionist/checkin",
-    },
-    {
-      title: "Walk-ins",
-      icon: "ri-user-add-line",
-      path: "/receptionist/walkins",
-    },
-    {
-      title: "Clients",
-      icon: "ri-user-heart-line",
-      path: "/receptionist/clients",
-    },
-    {
-      title: "Services",
-      icon: "ri-scissors-2-line",
-      path: "/receptionist/services",
-    },
-    {
-      title: "Staff Availability",
-      icon: "ri-team-line",
-      path: "/receptionist/staff",
-    },
-    {
-      title: "Notifications",
-      icon: "ri-notification-line",
-      path: "/receptionist/notifications",
-    },
-  ];
+  // Filter menu items based on user's allowedTabs
+  const menuItems = SIDEBAR_TABS.filter((tab) => {
+    // If user or allowedTabs is not available, show all tabs (fallback)
+    if (!user || !user.allowedTabs || user.allowedTabs.length === 0) {
+      return true;
+    }
+    // Show only tabs that are in the user's allowedTabs array
+    return user.allowedTabs.includes(tab.id);
+  });
 
   const isActive = (path) => location.pathname === path;
 

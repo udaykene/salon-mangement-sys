@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const staffSchema = new mongoose.Schema(
   {
     ownerId: {
@@ -40,6 +41,21 @@ const staffSchema = new mongoose.Schema(
       default: "active",
     },
     joiningDate: { type: Date, default: Date.now },
+    // NEW: Array of allowed sidebar tab IDs
+    allowedTabs: {
+      type: [String],
+      default: [
+        "dashboard",
+        "appointments",
+        "inventory",
+        "check-in-out",
+        "walk-ins",
+        "clients",
+        "services",
+        "staff-availability",
+        "notifications",
+      ],
+    },
   },
   { timestamps: true },
 );

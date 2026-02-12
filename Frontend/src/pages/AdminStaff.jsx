@@ -5,6 +5,7 @@ import EditStaffForm from "../components/EditStaffForm.jsx";
 import { useBranch } from "../context/BranchContext.jsx";
 import { useStaff } from "../context/StaffContext.jsx";
 import Toast from "../components/Toast";
+import { getDefaultAllowedTabs } from "../constants/sidebarTabs"; // NEW IMPORT
 
 const AdminStaff = () => {
   const { branches, currentBranch } = useBranch();
@@ -46,6 +47,7 @@ const AdminStaff = () => {
       end: "",
     },
     status: "active",
+    allowedTabs: getDefaultAllowedTabs(), // NEW: Initialize with all tabs
   });
 
   const roles = [
@@ -122,6 +124,7 @@ const AdminStaff = () => {
           end: "",
         },
         status: "active",
+        allowedTabs: getDefaultAllowedTabs(), // NEW: Reset with all tabs
       });
     }
   }, [showAddModal, currentBranch]);
@@ -146,6 +149,7 @@ const AdminStaff = () => {
           end: editingStaff.workingHours?.end || "",
         },
         status: editingStaff.status || "active",
+        allowedTabs: editingStaff.allowedTabs || getDefaultAllowedTabs(), // NEW: Load existing tabs
       });
     }
   }, [showEditModal, editingStaff]);
@@ -194,11 +198,38 @@ const AdminStaff = () => {
     }));
   };
 
+  // NEW: Handle allowed tabs toggle
+  const handleToggleTab = (tabId) => {
+    setFormData((prev) => {
+      const currentTabs = prev.allowedTabs || [];
+      
+      if (currentTabs.includes(tabId)) {
+        // Remove the tab
+        return {
+          ...prev,
+          allowedTabs: currentTabs.filter((id) => id !== tabId),
+        };
+      } else {
+        // Add the tab
+        return {
+          ...prev,
+          allowedTabs: [...currentTabs, tabId],
+        };
+      }
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (formData.workingDays.length < 1) {
       showToast("Please select at least one working day", "error");
+      return;
+    }
+
+    // NEW: Validate allowedTabs for Receptionist
+    if (formData.role === "Receptionist" && formData.allowedTabs.length < 2) {
+      showToast("Please select at least 2 tabs for Receptionist", "error");
       return;
     }
 
@@ -223,6 +254,12 @@ const AdminStaff = () => {
 
     if (formData.workingDays.length < 1) {
       showToast("Please select at least one working day", "error");
+      return;
+    }
+
+    // NEW: Validate allowedTabs for Receptionist
+    if (formData.role === "Receptionist" && formData.allowedTabs.length < 2) {
+      showToast("Please select at least 2 tabs for Receptionist", "error");
       return;
     }
 
@@ -329,6 +366,7 @@ const AdminStaff = () => {
                 onSubmit={handleSubmit}
                 onClose={() => setShowAddModal(false)}
                 onToggleDay={handleWorkingDayToggle}
+                onToggleTab={handleToggleTab} // NEW PROP
               />
             </div>
           </div>
@@ -792,6 +830,7 @@ const AdminStaff = () => {
               onSubmit={handleSubmit}
               onClose={() => setShowAddModal(false)}
               onToggleDay={handleWorkingDayToggle}
+              onToggleTab={handleToggleTab} // NEW PROP ADDED
             />
           </div>
         </div>
@@ -810,6 +849,7 @@ const AdminStaff = () => {
                 setEditingStaff(null);
               }}
               onToggleDay={handleWorkingDayToggle}
+              onToggleTab={handleToggleTab} // NEW PROP ADDED
               isEditMode={true}
             />
           </div>

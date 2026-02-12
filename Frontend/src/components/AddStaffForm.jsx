@@ -1,5 +1,6 @@
 import React from "react";
 import { useBranch } from "../context/BranchContext";
+import { SIDEBAR_TABS } from "../constants/sidebarTabs";
 
 const AddStaffForm = ({
   formData,
@@ -7,6 +8,7 @@ const AddStaffForm = ({
   onSubmit,
   onClose,
   onToggleDay,
+  onToggleTab,
 }) => {
   const { branches } = useBranch();
 
@@ -187,6 +189,49 @@ const AddStaffForm = ({
             />
           </div>
         </div>
+
+        {/* Sidebar Access Section - NEW */}
+        {formData.role === "Receptionist" && (
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <i className="ri-layout-grid-line text-rose-500"></i>
+              Sidebar Access
+            </h3>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Allowed Tabs *
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {SIDEBAR_TABS.map((tab) => (
+                  <label
+                    key={tab.id}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-rose-300 hover:bg-rose-50 cursor-pointer transition-all"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.allowedTabs?.includes(tab.id) || false}
+                      onChange={() => onToggleTab(tab.id)}
+                      className="w-5 h-5 text-rose-500 rounded focus:ring-rose-400"
+                    />
+                    <i className={`${tab.icon} text-xl text-gray-600`} />
+                    <span className="text-sm font-medium text-gray-700">
+                      {tab.title}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {formData.allowedTabs?.length < 2 && (
+                <p className="text-xs text-red-500 mt-2">
+                  Please select at least 2 tabs
+                </p>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
+                Selected {formData.allowedTabs?.length || 0} of {SIDEBAR_TABS.length} tabs
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Compensation Section */}
         <div>
