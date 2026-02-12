@@ -20,6 +20,9 @@ export const getServices = async (filters = {}) => {
   if (filters.category && filters.category !== "all") {
     params.append("category", filters.category);
   }
+  if (filters.gender && filters.gender !== "all") {
+    params.append("gender", filters.gender);
+  }
 
   const response = await api.get(`/?${params.toString()}`);
   return response.data;

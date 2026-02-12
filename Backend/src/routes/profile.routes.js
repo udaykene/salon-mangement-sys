@@ -55,6 +55,7 @@ router.get("/", async (req, res) => {
           isActive: staff.status === "active",
           createdAt: staff.createdAt,
           roleLabel: "Receptionist",
+          branchId: branchId, // Pass the session branchId
           branchName: branch?.name || null,
           allowedTabs: staff.allowedTabs || [],
         },

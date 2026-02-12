@@ -1,33 +1,61 @@
 import React, { useState, useEffect } from "react";
 import { useBranch } from "../context/BranchContext";
 import { createService, updateService } from "../api/services";
+import { getCategories, createCategory } from "../api/categories";
+import { useAuth } from "../context/AuthContext";
 
 const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
   const { branches } = useBranch();
+  const [categories, setCategories] = useState([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
 
+  const { user } = useAuth(); // Assuming useAuth is available or passed as prop
   const [formData, setFormData] = useState({
     name: "",
     category: "",
+    gender: "Unisex",
     description: "",
     price: "",
     duration: "",
     icon: "ri-scissors-2-line",
     gradient: "from-rose-500 to-pink-500",
     status: "active",
-    branchId: "",
+    branchId: user?.role === "receptionist" ? user.branchId : "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Fetch categories when branch changes
+  useEffect(() => {
+    if (formData.branchId) {
+      fetchCategories(formData.branchId);
+    }
+  }, [formData.branchId]);
+
+  const fetchCategories = async (branchId) => {
+    try {
+      const response = await getCategories(branchId);
+      if (response.success) {
+        setCategories(response.categories);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
 
   // Populate form if editing
   useEffect(() => {
     if (editingService) {
       setFormData({
         name: editingService.name || "",
-        category: editingService.category || "",
+        category: editingService.categoryId || editingService.category || "",
+        gender: editingService.gender || "Unisex",
         description: editingService.desc || "",
-        price: editingService.price ? editingService.price.replace("₹", "").trim() : "",
+        price: editingService.price
+          ? editingService.price.replace("₹", "").trim()
+          : "",
         duration: editingService.duration || "",
         icon: editingService.icon || "ri-scissors-2-line",
         gradient: editingService.gradient || "from-rose-500 to-pink-500",
@@ -37,7 +65,28 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     }
   }, [editingService]);
 
-  const categories = ["Hair", "Makeup", "Spa", "Nails"];
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      setLoading(true);
+      const response = await createCategory({
+        branchId: formData.branchId,
+        name: newCategoryName.trim(),
+      });
+      if (response.success) {
+        setCategories((prev) => [...prev, response.category]);
+        setFormData((prev) => ({ ...prev, category: response.category._id }));
+        setNewCategoryName("");
+        setShowNewCategoryInput(false);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create category");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const genderOptions = ["Men", "Female", "Unisex"];
 
   const iconOptions = [
     { value: "ri-scissors-2-line", label: "Scissors", category: "Hair" },
@@ -55,14 +104,46 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
   ];
 
   const gradientOptions = [
-    { value: "from-rose-500 to-pink-500", label: "Rose to Pink", color: "bg-gradient-to-r from-rose-500 to-pink-500" },
-    { value: "from-pink-500 to-fuchsia-500", label: "Pink to Fuchsia", color: "bg-gradient-to-r from-pink-500 to-fuchsia-500" },
-    { value: "from-purple-500 to-pink-500", label: "Purple to Pink", color: "bg-gradient-to-r from-purple-500 to-pink-500" },
-    { value: "from-blue-500 to-cyan-500", label: "Blue to Cyan", color: "bg-gradient-to-r from-blue-500 to-cyan-500" },
-    { value: "from-rose-400 to-pink-400", label: "Light Rose to Pink", color: "bg-gradient-to-r from-rose-400 to-pink-400" },
-    { value: "from-pink-400 to-fuchsia-400", label: "Light Pink to Fuchsia", color: "bg-gradient-to-r from-pink-400 to-fuchsia-400" },
-    { value: "from-fuchsia-400 to-purple-400", label: "Fuchsia to Purple", color: "bg-gradient-to-r from-fuchsia-400 to-purple-400" },
-    { value: "from-purple-400 to-rose-400", label: "Purple to Rose", color: "bg-gradient-to-r from-purple-400 to-rose-400" },
+    {
+      value: "from-rose-500 to-pink-500",
+      label: "Rose to Pink",
+      color: "bg-gradient-to-r from-rose-500 to-pink-500",
+    },
+    {
+      value: "from-pink-500 to-fuchsia-500",
+      label: "Pink to Fuchsia",
+      color: "bg-gradient-to-r from-pink-500 to-fuchsia-500",
+    },
+    {
+      value: "from-purple-500 to-pink-500",
+      label: "Purple to Pink",
+      color: "bg-gradient-to-r from-purple-500 to-pink-500",
+    },
+    {
+      value: "from-blue-500 to-cyan-500",
+      label: "Blue to Cyan",
+      color: "bg-gradient-to-r from-blue-500 to-cyan-500",
+    },
+    {
+      value: "from-rose-400 to-pink-400",
+      label: "Light Rose to Pink",
+      color: "bg-gradient-to-r from-rose-400 to-pink-400",
+    },
+    {
+      value: "from-pink-400 to-fuchsia-400",
+      label: "Light Pink to Fuchsia",
+      color: "bg-gradient-to-r from-pink-400 to-fuchsia-400",
+    },
+    {
+      value: "from-fuchsia-400 to-purple-400",
+      label: "Fuchsia to Purple",
+      color: "bg-gradient-to-r from-fuchsia-400 to-purple-400",
+    },
+    {
+      value: "from-purple-400 to-rose-400",
+      label: "Purple to Rose",
+      color: "bg-gradient-to-r from-purple-400 to-rose-400",
+    },
   ];
 
   const handleChange = (e) => {
@@ -70,14 +151,26 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      // Clear category if branch changes
+      ...(name === "branchId" ? { category: "" } : {}),
     }));
+    if (name === "branchId") {
+      setCategories([]);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate required fields
-    if (!formData.name || !formData.category || !formData.price || !formData.duration || !formData.branchId) {
+    if (
+      !formData.name ||
+      !formData.category ||
+      !formData.price ||
+      !formData.duration ||
+      !formData.branchId ||
+      !formData.gender
+    ) {
       setError("Please fill in all required fields");
       return;
     }
@@ -96,6 +189,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
       const serviceData = {
         name: formData.name,
         category: formData.category,
+        gender: formData.gender,
         desc: formData.description,
         price: Number(formData.price), // Convert to number for backend
         duration: formData.duration,
@@ -117,7 +211,9 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
       onSubmit();
     } catch (err) {
       console.error("Error saving service:", err);
-      setError(err.response?.data?.message || err.message || "Failed to save service");
+      setError(
+        err.response?.data?.message || err.message || "Failed to save service",
+      );
     } finally {
       setLoading(false);
     }
@@ -133,7 +229,9 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
             {editingService ? "Edit Service" : "Add New Service"}
           </h2>
           <p className="text-white/80 text-sm mt-1">
-            {editingService ? "Update service details" : "Fill in the details to add a new service"}
+            {editingService
+              ? "Update service details"
+              : "Fill in the details to add a new service"}
           </p>
         </div>
         <button
@@ -181,28 +279,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               />
             </div>
 
-            {/* Category */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Category *
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white"
-              >
-                <option value="">Select category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Branch */}
+             {/* Branch */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Branch *
@@ -212,7 +289,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                 value={formData.branchId}
                 onChange={handleChange}
                 required
-                disabled={editingService} // Disable branch change when editing
+                disabled={editingService || user?.role === "receptionist"}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="">Select branch</option>
@@ -222,11 +299,94 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                   </option>
                 ))}
               </select>
-              {editingService && (
+              {(editingService || user?.role === "receptionist") && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Branch cannot be changed when editing
+                  {user?.role === "receptionist"
+                    ? "Branch is fixed for your account"
+                    : "Branch cannot be changed when editing"}
                 </p>
               )}
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Category *
+              </label>
+              <div className="space-y-2">
+                {!showNewCategoryInput ? (
+                  <div className="flex gap-2">
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      required
+                      disabled={!formData.branchId}
+                      className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white disabled:bg-gray-100"
+                    >
+                      <option value="">Select category</option>
+                      {categories.map((cat) => (
+                        <option key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCategoryInput(true)}
+                      disabled={!formData.branchId}
+                      className="px-4 py-3 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition-colors disabled:opacity-50"
+                      title="Add new category"
+                    >
+                      <i className="ri-add-line"></i>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Category name"
+                      className="flex-1 px-4 py-3 rounded-xl border border-rose-300 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="px-4 py-3 rounded-xl bg-rose-500 text-white hover:bg-rose-600 transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCategoryInput(false)}
+                      className="px-4 py-3 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                    >
+                      <i className="ri-close-line"></i>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Gender Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Target Gender *
+              </label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white"
+              >
+                {genderOptions.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Description */}
@@ -308,7 +468,9 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, icon: option.value }))}
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, icon: option.value }))
+                    }
                     className={`p-3 rounded-xl border-2 transition-all hover:scale-105 ${
                       formData.icon === option.value
                         ? "border-rose-500 bg-rose-50"
@@ -316,7 +478,9 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                     }`}
                     title={option.label}
                   >
-                    <i className={`${option.value} text-2xl ${formData.icon === option.value ? "text-rose-500" : "text-gray-600"}`}></i>
+                    <i
+                      className={`${option.value} text-2xl ${formData.icon === option.value ? "text-rose-500" : "text-gray-600"}`}
+                    ></i>
                   </button>
                 ))}
               </div>
@@ -332,7 +496,12 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, gradient: option.value }))}
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        gradient: option.value,
+                      }))
+                    }
                     className={`p-3 rounded-xl border-2 transition-all hover:scale-105 ${
                       formData.gradient === option.value
                         ? "border-rose-500 ring-2 ring-rose-200"
@@ -351,14 +520,25 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                 Preview
               </label>
               <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
-                <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${formData.gradient} flex items-center justify-center shadow-lg`}>
+                <div
+                  className={`w-16 h-16 rounded-xl bg-gradient-to-br ${formData.gradient} flex items-center justify-center shadow-lg`}
+                >
                   <i className={`${formData.icon} text-white text-3xl`}></i>
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">{formData.name || "Service Name"}</p>
-                  <p className="text-sm text-gray-500">{formData.category || "Category"}</p>
+                  <p className="font-bold text-gray-900">
+                    {formData.name || "Service Name"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {showNewCategoryInput
+                      ? newCategoryName || "New Category"
+                      : categories.find((c) => c._id === formData.category)
+                          ?.name || "Category"}
+                  </p>
                   {formData.price && (
-                    <p className="text-sm text-rose-600 font-semibold mt-1">₹{formData.price}</p>
+                    <p className="text-sm text-rose-600 font-semibold mt-1">
+                      ₹{formData.price}
+                    </p>
                   )}
                 </div>
               </div>
@@ -424,7 +604,9 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
             </>
           ) : (
             <>
-              <i className={editingService ? "ri-save-line" : "ri-add-line"}></i>
+              <i
+                className={editingService ? "ri-save-line" : "ri-add-line"}
+              ></i>
               {editingService ? "Update Service" : "Add Service"}
             </>
           )}

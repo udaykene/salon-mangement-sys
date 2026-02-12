@@ -9,40 +9,45 @@ const serviceSchema = new mongoose.Schema(
       required: true,
       index: true, // Speeds up queries when fetching services for a specific branch
     },
-    
+
     // Core Service Data
-    name: { 
-      type: String, 
-      required: true, 
-      trim: true 
-    },
-    category: { 
-      type: String, 
+    name: {
+      type: String,
       required: true,
-      enum: ["Hair", "Makeup", "Spa", "Nails"] 
+      trim: true,
+    },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
+    gender: {
+      type: String,
+      required: true,
+      enum: ["Men", "Female", "Unisex"],
+      default: "Unisex",
     },
     desc: { type: String },
-    
+
     // Pricing & Logistics
     price: { type: Number, required: true }, // Changed to Number for calculations
     duration: { type: String, required: true }, // e.g., "45 min"
-    
+
     // Visuals (matches your Tailwind UI)
     icon: { type: String, default: "ri-scissors-2-line" },
     gradient: { type: String, default: "from-rose-500 to-pink-500" },
-    
+
     // Metrics
     clients: { type: Number, default: 0 },
-    
-    
+
     // Status
-    status: { 
-      type: String, 
-      enum: ["active", "inactive"], 
-      default: "active" 
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("Service", serviceSchema);

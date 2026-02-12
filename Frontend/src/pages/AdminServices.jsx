@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AddServiceForm from "../components/AddServiceForm";
-import { getServices, toggleServiceStatus, deleteService } from "../api/services";
+import {
+  getServices,
+  toggleServiceStatus,
+  deleteService,
+} from "../api/services";
+import { getCategories, deleteCategory } from "../api/categories";
 import { useBranch } from "../context/BranchContext";
 
 const SalonAdminServices = () => {
   const { branches, currentBranch } = useBranch();
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterGender, setFilterGender] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(null);
@@ -14,32 +20,47 @@ const SalonAdminServices = () => {
 
   // ── data ──────────────────────────────────────
   const [services, setServices] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ── Fetch services on mount and when currentBranch changes ──
+  // ── Fetch services and categories on mount and when currentBranch changes ──
   useEffect(() => {
-    fetchServices();
+    if (currentBranch) {
+      fetchServices();
+      fetchCategories();
+    }
   }, [currentBranch]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await getCategories(currentBranch._id);
+      if (response.success) {
+        setCategories(response.categories);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    }
+  };
 
   const fetchServices = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Fetch services - backend handles admin authorization
+
       const filters = {};
       if (currentBranch) {
         filters.branchId = currentBranch._id;
       }
-      
+
       const response = await getServices(filters);
-      
-      // Transform backend data to match frontend format
-      const transformedServices = response.services.map(service => ({
+
+      const transformedServices = response.services.map((service) => ({
         id: service._id,
         name: service.name,
-        category: service.category,
+        category: service.category?.name || "Uncategorized",
+        categoryId: service.category?._id,
+        gender: service.gender,
         desc: service.desc || "",
         price: `₹${service.price}`,
         duration: service.duration,
@@ -50,7 +71,7 @@ const SalonAdminServices = () => {
         branchId: service.branchId._id,
         branchName: service.branchId.name,
       }));
-      
+
       setServices(transformedServices);
     } catch (err) {
       console.error("Error fetching services:", err);
@@ -60,16 +81,32 @@ const SalonAdminServices = () => {
     }
   };
 
-  // ── derived ───────────────────────────────────
-  const categoryList = ["all", "Hair", "Makeup", "Spa", "Nails"];
+  const handleDeleteCategory = async (catId, catName) => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete category "${catName}"? This will DELETE ALL SERVICES in this category!`,
+      )
+    ) {
+      try {
+        await deleteCategory(catId);
+        fetchCategories();
+        fetchServices();
+      } catch (err) {
+        alert(err.response?.data?.message || "Failed to delete category");
+      }
+    }
+  };
 
-  const counts = categoryList.reduce((acc, c) => {
-    acc[c] =
-      c === "all"
-        ? services.length
-        : services.filter((s) => s.category === c).length;
-    return acc;
-  }, {});
+  // ── derived ───────────────────────────────────
+  const genderList = ["all", "Men", "Female", "Unisex"];
+
+  const counts = categories.reduce(
+    (acc, cat) => {
+      acc[cat._id] = services.filter((s) => s.categoryId === cat._id).length;
+      return acc;
+    },
+    { all: services.length },
+  );
 
   const statusCounts = {
     active: services.filter((s) => s.status === "active").length,
@@ -79,9 +116,11 @@ const SalonAdminServices = () => {
   const totalClients = services.reduce((s, sv) => s + sv.clients, 0);
 
   const filtered = services.filter((sv) => {
-    const matchCat = filterCategory === "all" || sv.category === filterCategory;
+    const matchCat =
+      filterCategory === "all" || sv.categoryId === filterCategory;
+    const matchGender = filterGender === "all" || sv.gender === filterGender;
     const matchStatus = filterStatus === "all" || sv.status === filterStatus;
-    return matchCat && matchStatus;
+    return matchCat && matchGender && matchStatus;
   });
 
   // ── dropdown handlers ──────────────────────────
@@ -98,7 +137,7 @@ const SalonAdminServices = () => {
   const handleToggleStatus = async (id) => {
     try {
       await toggleServiceStatus(id);
-      
+
       // Update local state
       setServices((prev) =>
         prev.map((s) =>
@@ -118,7 +157,7 @@ const SalonAdminServices = () => {
     if (window.confirm(`Are you sure you want to delete "${service.name}"?`)) {
       try {
         await deleteService(service.id);
-        
+
         // Update local state
         setServices((prev) => prev.filter((s) => s.id !== service.id));
         setDropdownOpen(null);
@@ -130,7 +169,6 @@ const SalonAdminServices = () => {
   };
 
   const handleAddService = () => {
-    // Refresh services after adding
     fetchServices();
     setShowAddForm(false);
     setEditingService(null);
@@ -141,27 +179,30 @@ const SalonAdminServices = () => {
     setEditingService(null);
   };
 
-  // ── gradient icon bg per category (for the overview row) ──
-  const catMeta = {
-    Hair: { gradient: "from-rose-500 to-pink-500", icon: "ri-scissors-2-line" },
-    Makeup: {
-      gradient: "from-pink-500 to-fuchsia-500",
-      icon: "ri-brush-3-line",
-    },
-    Spa: {
-      gradient: "from-purple-500 to-pink-500",
-      icon: "ri-user-heart-line",
-    },
-    Nails: {
-      gradient: "from-blue-500 to-cyan-500",
-      icon: "ri-hand-heart-line",
-    },
+  // ── Default icons for categories ──
+  const getCatIcon = (name) => {
+    const n = name.toLowerCase();
+    if (n.includes("hair")) return "ri-scissors-2-line";
+    if (n.includes("makeup")) return "ri-brush-3-line";
+    if (n.includes("spa") || n.includes("massage")) return "ri-user-heart-line";
+    if (n.includes("nail")) return "ri-hand-heart-line";
+    return "ri-grid-line";
   };
 
-  // ═══════════════════════════════════════════════
+  const getCatGradient = (index) => {
+    const gradients = [
+      "from-rose-500 to-pink-500",
+      "from-pink-500 to-fuchsia-500",
+      "from-purple-500 to-pink-500",
+      "from-blue-500 to-cyan-500",
+      "from-orange-500 to-rose-500",
+      "from-emerald-500 to-teal-500",
+    ];
+    return gradients[index % gradients.length];
+  };
+
   return (
     <AdminLayout>
-      {/* Main Content */}
       <main className="bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -182,26 +223,22 @@ const SalonAdminServices = () => {
           </button>
         </div>
 
-        {/* Loading State */}
         {loading && (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
           </div>
         )}
 
-        {/* Error State */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
 
-        {/* Content - Only show when not loading */}
         {!loading && (
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* Total Services */}
               <div className="bg-white rounded-2xl p-6 shadow-lg shadow-rose-500/5 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/10 transition-all group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform">
@@ -220,7 +257,6 @@ const SalonAdminServices = () => {
                 <p className="text-xs text-gray-500 mt-2">All offerings</p>
               </div>
 
-              {/* Active Services */}
               <div className="bg-white rounded-2xl p-6 shadow-lg shadow-green-500/5 border border-green-100 hover:shadow-xl hover:shadow-green-500/10 transition-all group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
@@ -236,10 +272,11 @@ const SalonAdminServices = () => {
                 <p className="text-3xl font-bold text-gray-900">
                   {statusCounts.active}
                 </p>
-                <p className="text-xs text-gray-500 mt-2">Currently available</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Currently available
+                </p>
               </div>
 
-              {/* Total Clients */}
               <div className="bg-white rounded-2xl p-6 shadow-lg shadow-purple-500/5 border border-purple-100 hover:shadow-xl hover:shadow-purple-500/10 transition-all group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform">
@@ -252,11 +289,12 @@ const SalonAdminServices = () => {
                 <h3 className="text-gray-600 text-sm font-medium mb-1">
                   Total Clients
                 </h3>
-                <p className="text-3xl font-bold text-gray-900">{totalClients}</p>
+                <p className="text-3xl font-bold text-gray-900">
+                  {totalClients}
+                </p>
                 <p className="text-xs text-gray-500 mt-2">All services</p>
               </div>
 
-              {/* Inactive Services */}
               <div className="bg-white rounded-2xl p-6 shadow-lg shadow-red-500/5 border border-red-100 hover:shadow-xl hover:shadow-red-500/10 transition-all group">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
@@ -272,7 +310,9 @@ const SalonAdminServices = () => {
                 <p className="text-3xl font-bold text-gray-900">
                   {statusCounts.inactive}
                 </p>
-                <p className="text-xs text-gray-500 mt-2">Currently unavailable</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Currently unavailable
+                </p>
               </div>
             </div>
 
@@ -285,18 +325,53 @@ const SalonAdminServices = () => {
                     Category
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {categoryList.map((c) => (
+                    <button
+                      onClick={() => setFilterCategory("all")}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                        filterCategory === "all"
+                          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
+                      }`}
+                    >
+                      <span>All</span>
+                      <span className="ml-1.5 opacity-75">({counts.all})</span>
+                    </button>
+                    {categories.map((cat) => (
                       <button
-                        key={c}
-                        onClick={() => setFilterCategory(c)}
+                        key={cat._id}
+                        onClick={() => setFilterCategory(cat._id)}
                         className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                          filterCategory === c
+                          filterCategory === cat._id
                             ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
                             : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
                         }`}
                       >
-                        <span className="capitalize">{c}</span>
-                        <span className="ml-1.5 opacity-75">({counts[c]})</span>
+                        <span className="capitalize">{cat.name}</span>
+                        <span className="ml-1.5 opacity-75">
+                          ({counts[cat._id] || 0})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Gender Pills */}
+                <div>
+                  <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                    Gender
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {genderList.map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => setFilterGender(g)}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                          filterGender === g
+                            ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
+                            : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
+                        }`}
+                      >
+                        <span className="capitalize">{g}</span>
                       </button>
                     ))}
                   </div>
@@ -346,13 +421,10 @@ const SalonAdminServices = () => {
                     key={sv.id}
                     className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl hover:border-rose-200 transition-all flex flex-col overflow-hidden group"
                   >
-                    {/* Card Header Strip */}
                     <div
                       className={`h-2 bg-gradient-to-r ${sv.gradient} group-hover:h-3 transition-all`}
                     />
-
                     <div className="p-6 flex flex-col flex-1">
-                      {/* Top Row: Icon + Status + Dropdown */}
                       <div className="flex items-start justify-between mb-4">
                         <div
                           className={`w-14 h-14 rounded-xl bg-gradient-to-br ${sv.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
@@ -369,7 +441,6 @@ const SalonAdminServices = () => {
                           >
                             {sv.status}
                           </span>
-                          {/* 3-dot dropdown */}
                           <div className="relative">
                             <button
                               onClick={() => toggleDropdown(sv.id)}
@@ -383,7 +454,7 @@ const SalonAdminServices = () => {
                                   onClick={() => handleEdit(sv)}
                                   className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-rose-50 flex items-center gap-2 transition-colors"
                                 >
-                                  <i className="ri-edit-line text-rose-500"></i>
+                                  <i className="ri-edit-line text-rose-500"></i>{" "}
                                   Edit Service
                                 </button>
                                 <button
@@ -401,8 +472,8 @@ const SalonAdminServices = () => {
                                   onClick={() => handleDelete(sv)}
                                   className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                                 >
-                                  <i className="ri-delete-bin-line"></i>
-                                  Delete Service
+                                  <i className="ri-delete-bin-line"></i> Delete
+                                  Service
                                 </button>
                               </div>
                             )}
@@ -410,7 +481,6 @@ const SalonAdminServices = () => {
                         </div>
                       </div>
 
-                      {/* Name + Category Badge */}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="font-bold text-gray-900 text-lg">
                           {sv.name}
@@ -418,24 +488,28 @@ const SalonAdminServices = () => {
                         <span className="text-xs font-semibold px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
                           {sv.category}
                         </span>
+                        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
+                          {sv.gender}
+                        </span>
                       </div>
 
                       <p className="text-sm text-gray-600 leading-relaxed mb-4">
                         {sv.desc}
                       </p>
 
-                      {/* Meta Row */}
                       <div className="border-t border-gray-100 pt-4 mt-auto space-y-3">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-500 flex items-center gap-2">
-                            <i className="ri-money-rupee-circle-line text-rose-500"></i>
+                            <i className="ri-money-rupee-circle-line text-rose-500"></i>{" "}
                             Price
                           </span>
-                          <span className="font-bold text-gray-900">{sv.price}</span>
+                          <span className="font-bold text-gray-900">
+                            {sv.price}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-500 flex items-center gap-2">
-                            <i className="ri-time-line text-rose-500"></i>
+                            <i className="ri-time-line text-rose-500"></i>{" "}
                             Duration
                           </span>
                           <span className="font-bold text-gray-900">
@@ -444,7 +518,7 @@ const SalonAdminServices = () => {
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-500 flex items-center gap-2">
-                            <i className="ri-team-line text-rose-500"></i>
+                            <i className="ri-team-line text-rose-500"></i>{" "}
                             Clients
                           </span>
                           <span className="font-bold text-gray-900">
@@ -460,36 +534,50 @@ const SalonAdminServices = () => {
 
             {/* Categories Overview */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50">
+              <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <i className="ri-grid-line text-rose-600"></i>
-                  Categories Overview
+                  <i className="ri-grid-line text-rose-600"></i> Categories
+                  Overview
                 </h2>
               </div>
 
               <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {["Hair", "Makeup", "Spa", "Nails"].map((cat) => {
-                  const meta = catMeta[cat];
-                  const count = services.filter((s) => s.category === cat).length;
-                  const activeCount = services.filter(
-                    (s) => s.category === cat && s.status === "active",
+                {categories.map((cat, index) => {
+                  const count = services.filter(
+                    (s) => s.categoryId === cat._id,
                   ).length;
+                  const activeCount = services.filter(
+                    (s) => s.categoryId === cat._id && s.status === "active",
+                  ).length;
+                  const gradient = getCatGradient(index);
+                  const icon = getCatIcon(cat.name);
                   return (
-                    <div
-                      key={cat}
-                      className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-rose-50 hover:shadow-md border-2 border-transparent hover:border-rose-200 transition-all cursor-pointer group"
-                    >
-                      <div
-                        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`}
+                    <div key={cat._id} className="relative group">
+                      <div className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 hover:bg-rose-50 hover:shadow-md border-2 border-transparent hover:border-rose-200 transition-all cursor-pointer">
+                        <div
+                          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform shrink-0`}
+                        >
+                          <i className={`${icon} text-white text-xl`}></i>
+                        </div>
+                        <div className="min-w-0 pr-6">
+                          <p className="font-bold text-gray-900 text-base truncate">
+                            {cat.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {count} services · {activeCount} active
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(cat._id, cat.name);
+                        }}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-200"
+                        title="Delete Category"
                       >
-                        <i className={`${meta.icon} text-white text-xl`}></i>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-gray-900 text-base">{cat}</p>
-                        <p className="text-xs text-gray-500">
-                          {count} services · {activeCount} active
-                        </p>
-                      </div>
+                        <i className="ri-delete-bin-line text-xs"></i>
+                      </button>
                     </div>
                   );
                 })}
@@ -499,7 +587,6 @@ const SalonAdminServices = () => {
         )}
       </main>
 
-      {/* Add/Edit Service Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">

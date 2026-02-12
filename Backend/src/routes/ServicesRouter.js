@@ -13,24 +13,40 @@ router.post("/", validateService, async (req, res) => {
     const ownerId = req.session.ownerId;
     const role = req.session.role;
 
-    // 1. Verify session exists and user is admin
-    if (!ownerId || role !== "admin") {
+    // 1. Verify session exists and user is admin or receptionist
+    if (!ownerId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized. Admin access required.",
+        message: "Unauthorized. Please login.",
       });
     }
 
-    // 2. Verify the branch belongs to this owner
-    const branch = await Branch.findOne({
-      _id: req.body.branchId,
-      ownerId: ownerId,
-    });
+    if (role === "admin") {
+      // 2. Verify the branch belongs to this owner
+      const branch = await Branch.findOne({
+        _id: req.body.branchId,
+        ownerId: ownerId,
+      });
 
-    if (!branch) {
-      return res.status(404).json({
+      if (!branch) {
+        return res.status(404).json({
+          success: false,
+          message: "Branch not found or you don't have access to it.",
+        });
+      }
+    } else if (role === "receptionist") {
+      const staffBranchId = req.session.branchId;
+      // Receptionist: Can only add services to their own branch
+      if (req.body.branchId.toString() !== staffBranchId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only add services to your own branch.",
+        });
+      }
+    } else {
+      return res.status(403).json({
         success: false,
-        message: "Branch not found or you don't have access to it.",
+        message: "Forbidden. Invalid role.",
       });
     }
 
@@ -75,8 +91,8 @@ router.get("/", async (req, res) => {
       const branches = await Branch.find({ ownerId }).select("_id");
       const branchIds = branches.map((b) => b._id);
 
-      // Optional: Filter by category or specific branch from query params
-      const { branchId, category } = req.query;
+      // Optional: Filter by category, gender or specific branch from query params
+      const { branchId, category, gender } = req.query;
 
       let query = { branchId: { $in: branchIds } };
 
@@ -86,19 +102,35 @@ router.get("/", async (req, res) => {
       if (category && category !== "all") {
         query.category = category;
       }
+      if (gender && gender !== "all") {
+        query.gender = gender;
+      }
 
-      services = await Service.find(query).populate("branchId", "name city");
+      services = await Service.find(query)
+        .populate("branchId", "name city")
+        .populate("category", "name");
     } else if (role === "receptionist") {
       // Receptionist: Only their branch's services
-      const { category } = req.query;
+      const { category, gender } = req.query;
 
       let query = { branchId: staffBranchId };
+
+      if (!staffBranchId) {
+        console.warn(
+          "Receptionist fetching services without branchId in session",
+        );
+      }
 
       if (category && category !== "all") {
         query.category = category;
       }
+      if (gender && gender !== "all") {
+        query.gender = gender;
+      }
 
-      services = await Service.find(query).populate("branchId", "name city");
+      services = await Service.find(query)
+        .populate("branchId", "name city")
+        .populate("category", "name");
     } else {
       return res.status(403).json({
         success: false,
@@ -129,13 +161,15 @@ router.put("/:id", validateService, async (req, res) => {
     const role = req.session.role;
     const serviceId = req.params.id;
 
-    // Only admin can fully update services
-    if (!ownerId || role !== "admin") {
+    // 1. Verify session exists
+    if (!ownerId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized. Admin access required.",
+        message: "Unauthorized. Please login.",
       });
     }
+
+    const staffBranchId = req.session.branchId;
 
     // Find the service
     const service = await Service.findById(serviceId);
@@ -146,35 +180,58 @@ router.put("/:id", validateService, async (req, res) => {
       });
     }
 
-    // Verify the service's branch belongs to this owner
-    const branch = await Branch.findOne({
-      _id: service.branchId,
-      ownerId: ownerId,
-    });
-
-    if (!branch) {
-      return res.status(403).json({
-        success: false,
-        message: "You don't have access to this service.",
-      });
-    }
-
-    // If branchId is being changed, verify the new branch also belongs to owner
-    if (
-      req.body.branchId &&
-      req.body.branchId !== service.branchId.toString()
-    ) {
-      const newBranch = await Branch.findOne({
-        _id: req.body.branchId,
+    // Authorization check based on role
+    if (role === "admin") {
+      // Verify the service's branch belongs to this owner
+      const branch = await Branch.findOne({
+        _id: service.branchId,
         ownerId: ownerId,
       });
 
-      if (!newBranch) {
-        return res.status(404).json({
+      if (!branch) {
+        return res.status(403).json({
           success: false,
-          message: "New branch not found or you don't have access to it.",
+          message: "You don't have access to this service.",
         });
       }
+
+      // If branchId is being changed, verify the new branch also belongs to owner
+      if (
+        req.body.branchId &&
+        req.body.branchId !== service.branchId.toString()
+      ) {
+        const newBranch = await Branch.findOne({
+          _id: req.body.branchId,
+          ownerId: ownerId,
+        });
+
+        if (!newBranch) {
+          return res.status(404).json({
+            success: false,
+            message: "New branch not found or you don't have access to it.",
+          });
+        }
+      }
+    } else if (role === "receptionist") {
+      // Receptionist: Can only update services in their branch
+      if (service.branchId.toString() !== staffBranchId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only update services in your branch.",
+        });
+      }
+      // Staff cannot change branchId
+      if (req.body.branchId && req.body.branchId !== staffBranchId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "Receptionists cannot change service branch.",
+        });
+      }
+    } else {
+      return res.status(403).json({
+        success: false,
+        message: "Forbidden. Invalid role.",
+      });
     }
 
     // Update the service
@@ -280,13 +337,15 @@ router.delete("/:id", async (req, res) => {
     const role = req.session.role;
     const serviceId = req.params.id;
 
-    // Only admin can delete services
-    if (!ownerId || role !== "admin") {
+    // Verify session exists
+    if (!ownerId) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized. Admin access required.",
+        message: "Unauthorized. Please login.",
       });
     }
+
+    const staffBranchId = req.session.branchId;
 
     // Find the service
     const service = await Service.findById(serviceId);
@@ -297,16 +356,32 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    // Verify the service's branch belongs to this owner
-    const branch = await Branch.findOne({
-      _id: service.branchId,
-      ownerId: ownerId,
-    });
+    // Authorization check based on role
+    if (role === "admin") {
+      // Admin: Verify the service's branch belongs to them
+      const branch = await Branch.findOne({
+        _id: service.branchId,
+        ownerId: ownerId,
+      });
 
-    if (!branch) {
+      if (!branch) {
+        return res.status(403).json({
+          success: false,
+          message: "You don't have access to this service.",
+        });
+      }
+    } else if (role === "receptionist") {
+      // Receptionist: Can only delete services in their branch
+      if (service.branchId.toString() !== staffBranchId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only delete services in your branch.",
+        });
+      }
+    } else {
       return res.status(403).json({
         success: false,
-        message: "You don't have access to this service.",
+        message: "Forbidden. Invalid role.",
       });
     }
 
