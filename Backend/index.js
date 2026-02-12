@@ -12,6 +12,7 @@ import profileRoutes from "./src/routes/profile.routes.js";
 import subscriptionRoutes from "./src/routes/subscription.routes.js";
 import ServicesRouter from "./src/routes/ServicesRouter.js";
 import CategoryRouter from "./src/routes/CategoryRouter.js";
+import AttendanceRouter from "./src/routes/AttendanceRouter.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -54,6 +55,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/services", ServicesRouter);
 app.use("/api/categories", CategoryRouter);
+app.use("/api/attendance", AttendanceRouter);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");

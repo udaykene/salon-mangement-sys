@@ -49,6 +49,12 @@ export const SIDEBAR_TABS = [
     path: "/receptionist/staff",
   },
   {
+    id: "attendance",
+    title: "Attendance",
+    icon: "ri-calendar-check-fill",
+    path: "/receptionist/attendance",
+  },
+  {
     id: "notifications",
     title: "Notifications",
     icon: "ri-notification-line",

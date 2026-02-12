@@ -39,6 +39,8 @@ import ReceptionistStaff from "./pages/ReceptionistStaff";
 import ReceptionistNotifications from "./pages/ReceptionistNotifications";
 import Pricing from "./pages/Pricing.jsx";
 import AdminInventory from "./pages/Inventory";
+import AdminAttendance from "./pages/AdminAttendance";
+import ReceptionistAttendance from "./pages/ReceptionistAttendance";
 const App = () => {
   const location = useLocation();
 
@@ -89,6 +91,7 @@ const App = () => {
                 <Route path="/admin/inbox" element={<AdminNotifications />} />
                 <Route path="/admin/offers" element={<AdminOffers />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin/attendance" element={<AdminAttendance />} />
 
                 {/* Receptionist Routes */}
                 <Route
@@ -126,6 +129,10 @@ const App = () => {
                 <Route
                   path="/receptionist/inventory"
                   element={<AdminInventory />}
+                />
+                <Route
+                  path="/receptionist/attendance"
+                  element={<ReceptionistAttendance />}
                 />
 
                 {/* Not Found */}
