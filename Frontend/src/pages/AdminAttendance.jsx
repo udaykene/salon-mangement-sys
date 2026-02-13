@@ -163,7 +163,7 @@ const AdminAttendance = () => {
                 Track and manage daily staff attendance
               </p>
             </div>
-            
+
             {/* Date Picker & Branch Switcher - Inline with Header */}
             <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
               {/* Date Picker */}
@@ -208,58 +208,82 @@ const AdminAttendance = () => {
           </div>
         </div>
 
-        {/* Compact Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Staff */}
-          <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-lg p-3 border border-rose-100">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center">
-                <i className="ri-team-line text-white text-lg"></i>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-rose-500/5 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/10 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform">
+                <i className="ri-team-line text-white text-2xl"></i>
               </div>
-              <div>
-                <p className="text-xs text-gray-600 font-medium">Total</p>
-                <p className="text-xl font-bold text-gray-900">{stats.total}</p>
-              </div>
+              <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
+                Total
+              </span>
             </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">
+              Total Staff
+            </h3>
+            <p className="text-3xl font-bold text-gray-900">
+              {stats.total}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">All employees</p>
           </div>
 
           {/* Present */}
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
-                <i className="ri-checkbox-circle-line text-white text-lg"></i>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-green-500/5 border border-green-100 hover:shadow-xl hover:shadow-green-500/10 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
+                <i className="ri-checkbox-circle-line text-white text-2xl"></i>
               </div>
-              <div>
-                <p className="text-xs text-gray-600 font-medium">Present</p>
-                <p className="text-xl font-bold text-gray-900">{stats.present}</p>
-              </div>
+              <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                Present
+              </span>
             </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">
+              Present Today
+            </h3>
+            <p className="text-3xl font-bold text-gray-900">
+              {stats.present}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">Checked in</p>
           </div>
 
           {/* Absent */}
-          <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-lg p-3 border border-red-100">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center">
-                <i className="ri-close-circle-line text-white text-lg"></i>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-red-500/5 border border-red-100 hover:shadow-xl hover:shadow-red-500/10 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
+                <i className="ri-close-circle-line text-white text-2xl"></i>
               </div>
-              <div>
-                <p className="text-xs text-gray-600 font-medium">Absent</p>
-                <p className="text-xl font-bold text-gray-900">{stats.absent}</p>
-              </div>
+              <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                Absent
+              </span>
             </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">
+              Absent Today
+            </h3>
+            <p className="text-3xl font-bold text-gray-900">
+              {stats.absent}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">Not available</p>
           </div>
 
           {/* Unmarked */}
-          <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg p-3 border border-yellow-100">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <i className="ri-question-line text-white text-lg"></i>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-yellow-500/5 border border-yellow-100 hover:shadow-xl hover:shadow-yellow-500/10 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:scale-110 transition-transform">
+                <i className="ri-question-line text-white text-2xl"></i>
               </div>
-              <div>
-                <p className="text-xs text-gray-600 font-medium">Unmarked</p>
-                <p className="text-xl font-bold text-gray-900">{stats.unmarked}</p>
-              </div>
+              <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
+                Pending
+              </span>
             </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">
+              Unmarked
+            </h3>
+            <p className="text-3xl font-bold text-gray-900">
+              {stats.unmarked}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">Needs update</p>
           </div>
         </div>
 
@@ -414,30 +438,29 @@ const AdminAttendance = () => {
                         {/* Staff Status */}
                         <td className="px-4 py-3">
                           <span
-                            className={`px-2 py-1 rounded-md text-xs font-medium ${
-                              (member.status || member.staffStatus) === "active"
+                            className={`px-2 py-1 rounded-md text-xs font-medium ${(member.status || member.staffStatus) === "active"
                                 ? "bg-green-50 text-green-700"
                                 : (member.status || member.staffStatus) ===
-                                    "on-leave"
+                                  "on-leave"
                                   ? "bg-yellow-50 text-yellow-700"
                                   : "bg-red-50 text-red-700"
-                            }`}
+                              }`}
                           >
                             {(member.status || member.staffStatus) ===
-                            "on-leave"
+                              "on-leave"
                               ? "On Leave"
                               : (
-                                  member.status ||
-                                  member.staffStatus ||
-                                  "Active"
-                                )
-                                  .charAt(0)
-                                  .toUpperCase() +
-                                (
-                                  member.status ||
-                                  member.staffStatus ||
-                                  "active"
-                                ).slice(1)}
+                                member.status ||
+                                member.staffStatus ||
+                                "Active"
+                              )
+                                .charAt(0)
+                                .toUpperCase() +
+                              (
+                                member.status ||
+                                member.staffStatus ||
+                                "active"
+                              ).slice(1)}
                           </span>
                         </td>
 
@@ -449,11 +472,10 @@ const AdminAttendance = () => {
                                 markAttendance(member._id, "present")
                               }
                               disabled={markingId === member._id}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                member.attendance === "present"
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${member.attendance === "present"
                                   ? "bg-green-500 text-white"
                                   : "bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                              } disabled:opacity-50`}
+                                } disabled:opacity-50`}
                             >
                               <i className="ri-checkbox-circle-line mr-1"></i>
                               Present
@@ -463,11 +485,10 @@ const AdminAttendance = () => {
                                 markAttendance(member._id, "absent")
                               }
                               disabled={markingId === member._id}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                member.attendance === "absent"
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${member.attendance === "absent"
                                   ? "bg-red-500 text-white"
                                   : "bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700"
-                              } disabled:opacity-50`}
+                                } disabled:opacity-50`}
                             >
                               <i className="ri-close-circle-line mr-1"></i>
                               Absent
