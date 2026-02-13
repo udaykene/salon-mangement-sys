@@ -1,72 +1,46 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 
 const SalonAdminAppointments = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [appointments, setAppointments] = useState([
-    {
-      id: 1,
-      clientName: "Sarah Johnson",
-      service: "Bridal Makeup",
-      date: "2026-02-05",
-      time: "10:00 AM",
-      status: "confirmed",
-      type: "Makeup",
-      avatar: "S",
-    },
-    {
-      id: 2,
-      clientName: "Emily Davis",
-      service: "Hair Coloring",
-      date: "2026-02-08",
-      time: "2:00 PM",
-      status: "pending",
-      type: "Hair",
-      avatar: "E",
-    },
-    {
-      id: 3,
-      clientName: "Lisa Morgan",
-      service: "Spa Treatment",
-      date: "2026-02-10",
-      time: "11:30 AM",
-      status: "confirmed",
-      type: "Spa",
-      avatar: "L",
-    },
-    {
-      id: 4,
-      clientName: "Jessica Wright",
-      service: "Nail Art",
-      date: "2026-02-12",
-      time: "3:00 PM",
-      status: "cancelled",
-      type: "Nails",
-      avatar: "J",
-    },
-    {
-      id: 5,
-      clientName: "Anna Klein",
-      service: "Hair Styling",
-      date: "2026-02-14",
-      time: "9:30 AM",
-      status: "pending",
-      type: "Hair",
-      avatar: "A",
-    },
-    {
-      id: 6,
-      clientName: "Maria Santos",
-      service: "Facial Treatment",
-      date: "2026-02-15",
-      time: "1:00 PM",
-      status: "confirmed",
-      type: "Spa",
-      avatar: "M",
-    },
-  ]);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch appointments
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/api/appointments");
+      const data = await response.json();
+
+      // Transform data to match component structure
+      const formatted = data.map(apt => ({
+        id: apt._id,
+        clientName: apt.customerName,
+        service: apt.service,
+        date: apt.date,
+        time: apt.time,
+        status: apt.status.toLowerCase(), // Normalize to lowercase for compatibility
+        type: apt.category,
+        avatar: apt.customerName.charAt(0).toUpperCase(),
+        phone: apt.phone,
+        email: apt.email,
+        staff: apt.staff,
+        notes: apt.notes
+      }));
+
+      setAppointments(formatted);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ── helpers ──────────────────────────────────
   const typeColor = {
@@ -89,10 +63,24 @@ const SalonAdminAppointments = () => {
     return "bg-red-100 text-red-700 border-red-200";
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setAppointments((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a)),
-    );
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/appointments/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
+        setAppointments((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, status: newStatus } : a))
+        );
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
   };
 
   const filtered = appointments.filter((a) => {
@@ -215,11 +203,10 @@ const SalonAdminAppointments = () => {
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    filterStatus === s
-                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${filterStatus === s
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
+                    }`}
                 >
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>

@@ -41,6 +41,7 @@ import Pricing from "./pages/Pricing.jsx";
 import AdminInventory from "./pages/Inventory";
 import AdminAttendance from "./pages/AdminAttendance";
 import ReceptionistAttendance from "./pages/ReceptionistAttendance";
+import BookAppointment from "./pages/BookAppointment";
 const App = () => {
   const location = useLocation();
 
@@ -68,6 +69,7 @@ const App = () => {
                 <Route path="/register" element={<RegistrationPage />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/team" element={<Team />} />
+                <Route path="/book-appointment" element={<BookAppointment />} />
 
                 {/* Admin Routes */}
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />

@@ -26,9 +26,9 @@ const SalonHome = () => {
           </p>
 
           <div className="flex justify-center sm:flex-row gap-3 sm:gap-4 mb-8 sm:mb-12 w-full sm:w-auto px-4 sm:px-0">
-            <button className="w-fit sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm sm:text-base font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center">
+            <a href="/book-appointment" className="w-fit sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm sm:text-base font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center">
               Book Appointment <span className="ml-2">→</span>
-            </button>
+            </a>
 
             <button className="w-fit sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-md border border-white/30 hover:bg-white/20 text-white text-sm sm:text-base font-bold rounded-lg transition-all flex items-center justify-center">
               <span className="mr-2">▶</span> Virtual Tour
