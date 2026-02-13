@@ -78,7 +78,7 @@ const AdminSettings = () => {
         { newPlan },
         { withCredentials: true }
       );
-      
+
       alert(res.data.message);
       await fetchSubscriptionData(); // Refresh subscription data
     } catch (err) {
@@ -89,19 +89,52 @@ const AdminSettings = () => {
     }
   };
 
-  const handleSave = () => {
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await axios.get("http://localhost:3000/api/profile");
+      if (data.profile && data.profile.salonSettings) {
+        const s = data.profile.salonSettings;
+        setGeneralSettings({
+          salonName: s.name || "",
+          email: s.email || "",
+          phone: s.phone || "",
+          address: s.address || "",
+          currency: s.currency || "INR",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
+
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
+    try {
+      await axios.put("http://localhost:3000/api/profile/salon", {
+        name: generalSettings.salonName,
+        email: generalSettings.email,
+        phone: generalSettings.phone,
+        address: generalSettings.address,
+        currency: generalSettings.currency
+      });
       alert("Settings saved successfully!");
-    }, 1000);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      alert("Failed to save settings");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
     <AdminLayout>
       {/* Main Content */}
       <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
-        
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -141,11 +174,10 @@ const AdminSettings = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-                activeTab === tab.id
-                  ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
-                  : "bg-white border-2 border-gray-200 text-gray-600 hover:border-rose-200 hover:bg-rose-50"
-              }`}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${activeTab === tab.id
+                ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-lg shadow-rose-500/30"
+                : "bg-white border-2 border-gray-200 text-gray-600 hover:border-rose-200 hover:bg-rose-50"
+                }`}
             >
               <i className={`${tab.icon} text-lg`}></i>
               {tab.label}
@@ -155,7 +187,7 @@ const AdminSettings = () => {
 
         {/* Content Card */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-          
+
           {/* General Settings */}
           {activeTab === "general" && (
             <>
@@ -197,13 +229,8 @@ const AdminSettings = () => {
                     <input
                       type="email"
                       value={generalSettings.email}
-                      onChange={(e) =>
-                        setGeneralSettings({
-                          ...generalSettings,
-                          email: e.target.value,
-                        })
-                      }
-                      className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-rose-500 focus:ring-4 focus:ring-rose-100 transition-all outline-none"
+                      disabled
+                      className="rounded-xl border-2 border-gray-200 bg-gray-100 p-3 text-gray-500 font-medium cursor-not-allowed transition-all outline-none"
                     />
                   </div>
 
@@ -302,7 +329,7 @@ const AdminSettings = () => {
                           <i className="ri-vip-crown-fill text-white text-3xl"></i>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div className="bg-white rounded-lg p-4">
                           <p className="text-xs text-gray-600 mb-1">Branch Limit</p>
@@ -342,11 +369,10 @@ const AdminSettings = () => {
                         return (
                           <div
                             key={key}
-                            className={`rounded-xl border-2 p-6 transition-all ${
-                              isCurrent
-                                ? "border-rose-500 bg-gradient-to-br from-rose-50 to-pink-50 shadow-lg"
-                                : "border-gray-200 bg-white hover:border-rose-300"
-                            }`}
+                            className={`rounded-xl border-2 p-6 transition-all ${isCurrent
+                              ? "border-rose-500 bg-gradient-to-br from-rose-50 to-pink-50 shadow-lg"
+                              : "border-gray-200 bg-white hover:border-rose-300"
+                              }`}
                           >
                             {isCurrent && (
                               <div className="mb-3">
@@ -399,8 +425,8 @@ const AdminSettings = () => {
                         <div>
                           <p className="text-sm font-semibold text-blue-900 mb-1">Plan Upgrade Information</p>
                           <p className="text-xs text-blue-700">
-                            • Upgrades are instant and take effect immediately<br/>
-                            • You can only upgrade to higher plans (no downgrades)<br/>
+                            • Upgrades are instant and take effect immediately<br />
+                            • You can only upgrade to higher plans (no downgrades)<br />
                             • No payment gateway integrated yet - upgrades are free for testing
                           </p>
                         </div>

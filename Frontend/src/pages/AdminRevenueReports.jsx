@@ -1,59 +1,70 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
+import axios from "axios";
 
 const SalonAdminRevenue = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchReport();
+  }, [selectedPeriod]);
+
+  const fetchReport = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.get(`http://localhost:3000/api/reports/summary?period=${selectedPeriod}`);
+      setReportData(data);
+    } catch (error) {
+      console.error("Error fetching report:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const revenueStats = [
     {
       title: "Total Revenue",
-      value: "$45,250",
+      value: reportData ? `$${reportData.totalRevenue.toLocaleString()}` : "$0",
       icon: "💰",
       gradient: "from-rose-500 to-pink-500",
-      trend: "+23.5%",
+      trend: "+12.5%",
       trendUp: true,
     },
     {
-      title: "Services Revenue",
-      value: "$32,400",
-      icon: "✂️",
-      gradient: "from-pink-500 to-fuchsia-500",
-      trend: "+18.2%",
-      trendUp: true,
-    },
-    {
-      title: "Pending Payments",
-      value: "$5,800",
-      icon: "⏳",
-      gradient: "from-fuchsia-500 to-purple-500",
-      trend: "-5.3%",
-      trendUp: false,
-    },
-    {
-      title: "This Month",
-      value: "$12,050",
+      title: "Total Appointments",
+      value: reportData ? reportData.totalAppointments : 0,
       icon: "📅",
+      gradient: "from-pink-500 to-fuchsia-500",
+      trend: "+8.2%",
+      trendUp: true,
+    },
+    {
+      title: "New Clients",
+      value: reportData ? reportData.newClients : 0,
+      icon: "👥",
+      gradient: "from-fuchsia-500 to-purple-500",
+      trend: "+5.3%",
+      trendUp: true,
+    },
+    {
+      title: "Avg. Transaction",
+      value: reportData && reportData.totalAppointments > 0 ? `$${Math.round(reportData.totalRevenue / reportData.totalAppointments)}` : "$0",
+      icon: "💳",
       gradient: "from-purple-500 to-rose-500",
-      trend: "+12.8%",
+      trend: "+3.8%",
       trendUp: true,
     },
   ];
 
-  const monthlyRevenue = [
-    { month: "Jan", revenue: 3500, services: 24 },
-    { month: "Feb", revenue: 4200, services: 28 },
-    { month: "Mar", revenue: 3800, services: 26 },
-    { month: "Apr", revenue: 5100, services: 35 },
-    { month: "May", revenue: 4800, services: 32 },
-    { month: "Jun", revenue: 6200, services: 42 },
-    { month: "Jul", revenue: 5800, services: 38 },
-    { month: "Aug", revenue: 6500, services: 44 },
-    { month: "Sep", revenue: 7100, services: 48 },
-    { month: "Oct", revenue: 6800, services: 45 },
-    { month: "Nov", revenue: 7500, services: 50 },
-    { month: "Dec", revenue: 8200, services: 55 },
-  ];
+  const monthlyRevenue = reportData && reportData.chartData ? reportData.chartData.map(d => ({
+    month: d.label,
+    revenue: d.value
+  })) : [];
 
+  // Recent transactions can be kept static or fetched separately if needed, 
+  // currently we don't have transaction endpoint, so keeping static for UI consistency
   const recentTransactions = [
     {
       id: 1,
@@ -85,56 +96,21 @@ const SalonAdminRevenue = () => {
       type: "Full Payment",
       avatar: "L",
     },
-    {
-      id: 4,
-      client: "Jessica Wright",
-      service: "Nail Art & Manicure",
-      amount: "$280",
-      date: "2026-01-26",
-      status: "completed",
-      type: "Service Payment",
-      avatar: "J",
-    },
-    {
-      id: 5,
-      client: "Anna Klein",
-      service: "Hair Styling Deluxe",
-      amount: "$410",
-      date: "2026-01-24",
-      status: "pending",
-      type: "Service Payment",
-      avatar: "A",
-    },
   ];
 
-  const serviceRevenueBreakdown = [
-    {
-      category: "Hair Services",
-      amount: 15500,
-      percentage: 34.3,
-      gradient: "from-rose-500 to-pink-500",
-    },
-    {
-      category: "Makeup",
-      amount: 12800,
-      percentage: 28.3,
-      gradient: "from-pink-500 to-fuchsia-500",
-    },
-    {
-      category: "Spa & Wellness",
-      amount: 10200,
-      percentage: 22.5,
-      gradient: "from-fuchsia-500 to-purple-500",
-    },
-    {
-      category: "Nails & Beauty",
-      amount: 6750,
-      percentage: 14.9,
-      gradient: "from-purple-500 to-rose-500",
-    },
-  ];
+  const serviceRevenueBreakdown = reportData && reportData.serviceRevenue ? Object.entries(reportData.serviceRevenue).map(([category, amount], index) => ({
+    category,
+    amount,
+    percentage: reportData.totalRevenue > 0 ? ((amount / reportData.totalRevenue) * 100).toFixed(1) : 0,
+    gradient: [
+      "from-rose-500 to-pink-500",
+      "from-pink-500 to-fuchsia-500",
+      "from-fuchsia-500 to-purple-500",
+      "from-purple-500 to-rose-500"
+    ][index % 4]
+  })) : [];
 
-  const maxRevenue = Math.max(...monthlyRevenue.map((m) => m.revenue));
+  const maxRevenue = monthlyRevenue.length > 0 ? Math.max(...monthlyRevenue.map((m) => m.revenue)) : 100;
 
   return (
     <AdminLayout>
@@ -191,11 +167,10 @@ const SalonAdminRevenue = () => {
                   <button
                     key={period}
                     onClick={() => setSelectedPeriod(period)}
-                    className={`flex-1 !flex-1 sm:flex-initial !sm:flex-initial rounded-lg !rounded-lg px-3 !px-3 sm:px-4 !sm:px-4 py-1.5 !py-1.5 sm:py-2 !sm:py-2 text-xs !text-xs sm:text-sm !sm:text-sm font-semibold !font-semibold transition-all !transition-all capitalize !capitalize ${
-                      selectedPeriod === period
-                        ? "bg-gradient-to-r !bg-gradient-to-r from-rose-500 !from-rose-500 to-pink-500 !to-pink-500 text-white !text-white shadow-md !shadow-md"
-                        : "bg-gray-100 !bg-gray-100 text-gray-600 !text-gray-600 hover:bg-gray-200"
-                    }`}
+                    className={`flex-1 !flex-1 sm:flex-initial !sm:flex-initial rounded-lg !rounded-lg px-3 !px-3 sm:px-4 !sm:px-4 py-1.5 !py-1.5 sm:py-2 !sm:py-2 text-xs !text-xs sm:text-sm !sm:text-sm font-semibold !font-semibold transition-all !transition-all capitalize !capitalize ${selectedPeriod === period
+                      ? "bg-gradient-to-r !bg-gradient-to-r from-rose-500 !from-rose-500 to-pink-500 !to-pink-500 text-white !text-white shadow-md !shadow-md"
+                      : "bg-gray-100 !bg-gray-100 text-gray-600 !text-gray-600 hover:bg-gray-200"
+                      }`}
                   >
                     {period}
                   </button>
@@ -320,11 +295,10 @@ const SalonAdminRevenue = () => {
                     {transaction.amount}
                   </p>
                   <span
-                    className={`text-xs !text-xs font-bold !font-bold px-2 !px-2 py-0.5 !py-0.5 rounded-full !rounded-full ${
-                      transaction.status === "completed"
-                        ? "bg-emerald-50 !bg-emerald-50 text-emerald-600 !text-emerald-600"
-                        : "bg-amber-50 !bg-amber-50 text-amber-600 !text-amber-600"
-                    }`}
+                    className={`text-xs !text-xs font-bold !font-bold px-2 !px-2 py-0.5 !py-0.5 rounded-full !rounded-full ${transaction.status === "completed"
+                      ? "bg-emerald-50 !bg-emerald-50 text-emerald-600 !text-emerald-600"
+                      : "bg-amber-50 !bg-amber-50 text-amber-600 !text-amber-600"
+                      }`}
                   >
                     {transaction.status}
                   </span>

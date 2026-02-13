@@ -70,4 +70,40 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Update Salon Settings (Owner Only)
+router.put("/salon", async (req, res) => {
+  try {
+    const { role, ownerId } = req.session;
+
+    if (role !== "admin") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const { name, email, phone, address, currency } = req.body;
+
+    const owner = await Owner.findById(ownerId);
+    if (!owner) {
+      return res.status(404).json({ message: "Owner not found" });
+    }
+
+    // Update salon settings
+    owner.salonSettings = {
+      ...owner.salonSettings,
+      name,
+      email,
+      phone,
+      address,
+      currency
+    };
+
+    await owner.save();
+
+    res.json({ message: "Salon settings updated", salonSettings: owner.salonSettings });
+
+  } catch (err) {
+    console.error("Salon settings update error:", err);
+    res.status(500).json({ message: "Failed to update settings" });
+  }
+});
+
 export default router;

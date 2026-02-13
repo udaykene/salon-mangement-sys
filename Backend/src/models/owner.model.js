@@ -37,6 +37,14 @@ const ownerSchema = new mongoose.Schema(
       // You can add expiryDate later when implementing payment
       // expiryDate: { type: Date }
     },
+    // 🆕 Salon Settings
+    salonSettings: {
+      name: { type: String, default: "My Salon" },
+      email: { type: String }, // Public contact email
+      phone: { type: String }, // Public contact phone
+      address: { type: String },
+      currency: { type: String, default: "INR" },
+    },
   },
   { timestamps: true }
 );

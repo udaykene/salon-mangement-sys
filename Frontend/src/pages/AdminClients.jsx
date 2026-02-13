@@ -1,84 +1,91 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
+
+import axios from "axios";
 
 const SalonAdminClients = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [viewClient, setViewClient] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+  });
 
-  const [clients] = useState([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah.j@email.com",
-      phone: "+1 (555) 123-4567",
-      status: "active",
-      location: "Downtown",
-      visits: 14,
-      spent: "$1,240",
-      avatar: "S",
-      gradient: "from-rose-500 to-pink-500",
-    },
-    {
-      id: 2,
-      name: "Emily Davis",
-      email: "emily.d@email.com",
-      phone: "+1 (555) 234-5678",
-      status: "active",
-      location: "Midtown",
-      visits: 8,
-      spent: "$680",
-      avatar: "E",
-      gradient: "from-pink-500 to-fuchsia-500",
-    },
-    {
-      id: 3,
-      name: "Lisa Morgan",
-      email: "lisa.m@email.com",
-      phone: "+1 (555) 345-6789",
-      status: "inactive",
-      location: "Westside",
-      visits: 3,
-      spent: "$310",
-      avatar: "L",
-      gradient: "from-purple-500 to-pink-500",
-    },
-    {
-      id: 4,
-      name: "Jessica Wright",
-      email: "jessica.w@email.com",
-      phone: "+1 (555) 456-7890",
-      status: "active",
-      location: "Eastend",
-      visits: 21,
-      spent: "$2,100",
-      avatar: "J",
-      gradient: "from-blue-500 to-cyan-500",
-    },
-    {
-      id: 5,
-      name: "Anna Klein",
-      email: "anna.k@email.com",
-      phone: "+1 (555) 567-8901",
-      status: "active",
-      location: "Uptown",
-      visits: 6,
-      spent: "$520",
-      avatar: "A",
-      gradient: "from-rose-400 to-pink-400",
-    },
-    {
-      id: 6,
-      name: "Maria Santos",
-      email: "maria.s@email.com",
-      phone: "+1 (555) 678-9012",
-      status: "inactive",
-      location: "Harbor",
-      visits: 2,
-      spent: "$180",
-      avatar: "M",
-      gradient: "from-pink-400 to-fuchsia-400",
-    },
-  ]);
+  const handleView = (client) => {
+    setViewClient(client);
+  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCreateClient = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (formData.id) {
+        await axios.put(`http://localhost:3000/api/clients/${formData.id}`, formData);
+        alert("Client updated successfully!");
+      } else {
+        await axios.post("http://localhost:3000/api/clients", formData);
+        alert("Client added successfully!");
+      }
+      setShowModal(false);
+      setFormData({ name: "", email: "", phone: "", location: "" });
+      fetchClients();
+    } catch (error) {
+      console.error("Error saving client:", error);
+      alert(error.response?.data?.message || "Failed to save client");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (client) => {
+    setFormData({
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      location: client.location,
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this client?")) {
+      try {
+        await axios.delete(`http://localhost:3000/api/clients/${id}`);
+        fetchClients();
+        alert("Client deleted successfully");
+      } catch (error) {
+        console.error("Error deleting client:", error);
+        alert("Failed to delete client");
+      }
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const { data } = await axios.get("http://localhost:3000/api/clients");
+      setClients(data);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // ── derived ──────────────────────────────────
   const counts = clients.reduce(
@@ -205,11 +212,10 @@ const SalonAdminClients = () => {
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    filterStatus === s
-                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
-                  }`}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${filterStatus === s
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
+                    }`}
                 >
                   <span className="capitalize">{s}</span>
                   <span className="ml-1.5 opacity-75">
@@ -243,7 +249,9 @@ const SalonAdminClients = () => {
                 <i className="ri-user-3-line text-rose-600"></i>
                 All Clients ({filtered.length})
               </h2>
-              <button className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2">
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2">
                 <i className="ri-user-add-line text-lg"></i>
                 New Client
               </button>
@@ -284,11 +292,10 @@ const SalonAdminClients = () => {
                             {client.name}
                           </h3>
                           <span
-                            className={`text-xs font-semibold px-3 py-1 rounded-full capitalize border ${
-                              client.status === "active"
-                                ? "bg-green-100 text-green-700 border-green-200"
-                                : "bg-red-100 text-red-700 border-red-200"
-                            }`}
+                            className={`text-xs font-semibold px-3 py-1 rounded-full capitalize border ${client.status === "active"
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : "bg-red-100 text-red-700 border-red-200"
+                              }`}
                           >
                             {client.status}
                           </span>
@@ -326,18 +333,21 @@ const SalonAdminClients = () => {
                     {/* Actions */}
                     <div className="flex gap-2">
                       <button
+                        onClick={() => handleView(client)}
                         className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center border-2 border-rose-200 hover:border-rose-500 shadow-sm"
                         title="View Details"
                       >
                         <i className="ri-eye-line text-lg"></i>
                       </button>
                       <button
+                        onClick={() => handleEdit(client)}
                         className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center border-2 border-pink-200 hover:border-pink-500 shadow-sm"
                         title="Edit"
                       >
                         <i className="ri-edit-line text-lg"></i>
                       </button>
                       <button
+                        onClick={() => handleDelete(client.id)}
                         className="w-10 h-10 rounded-xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center border-2 border-red-200 hover:border-red-500 shadow-sm"
                         title="Delete"
                       >
@@ -350,6 +360,171 @@ const SalonAdminClients = () => {
             </div>
           )}
         </div>
+        {/* Add Client Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">{formData.id ? "Edit Client" : "Add New Client"}</h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <i className="ri-close-line text-2xl"></i>
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateClient} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. Sarah Johnson"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. sarah@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. +1 234 567 890"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. Downtown"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-lg shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? "Saving..." : (formData.id ? "Update Client" : "Save Client")}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+        {/* View Client Modal */}
+        {viewClient && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">Client Details</h3>
+                <button
+                  onClick={() => setViewClient(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <i className="ri-close-line text-2xl"></i>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="flex flex-col items-center">
+                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${viewClient.gradient} flex items-center justify-center text-white text-3xl font-bold shadow-lg mb-4`}>
+                    {viewClient.avatar}
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">{viewClient.name}</h2>
+                  <span className={`mt-2 px-3 py-1 rounded-full text-xs font-semibold capitalize border ${viewClient.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
+                    }`}>
+                    {viewClient.status}
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                      <i className="ri-mail-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">Email</p>
+                      <p className="text-gray-900 font-semibold">{viewClient.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                      <i className="ri-phone-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">Phone</p>
+                      <p className="text-gray-900 font-semibold">{viewClient.phone}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                      <i className="ri-map-pin-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">Location</p>
+                      <p className="text-gray-900 font-semibold">{viewClient.location}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-center">
+                      <p className="text-xs text-rose-600 font-medium mb-1">Total Visits</p>
+                      <p className="text-xl font-bold text-rose-700">{viewClient.visits}</p>
+                    </div>
+                    <div className="p-3 bg-pink-50 rounded-xl border border-pink-100 text-center">
+                      <p className="text-xs text-pink-600 font-medium mb-1">Total Spent</p>
+                      <p className="text-xl font-bold text-pink-700">{viewClient.spent}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setViewClient(null)}
+                  className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </AdminLayout>
   );

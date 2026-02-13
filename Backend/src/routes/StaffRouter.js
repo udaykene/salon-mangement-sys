@@ -12,7 +12,14 @@ router.get("/", async (req, res) => {
       return res.status(401).json({ message: "Unauthorized. Please log in." });
     }
 
-    const staff = await Staff.find({ ownerId }).sort({ createdAt: -1 });
+    const { branchId } = req.query;
+    let query = { ownerId };
+
+    if (branchId) {
+      query.branchId = branchId;
+    }
+
+    const staff = await Staff.find(query).sort({ createdAt: -1 });
     res.json(staff);
   } catch (err) {
     console.error("Error fetching staff:", err);
@@ -48,7 +55,7 @@ router.post("/", async (req, res) => {
 
     // --- UPDATE BRANCH ARRAY ---
     // Push the new staff ID into the corresponding branch's staff array
-   const updatedBranch = await Branch.findByIdAndUpdate(
+    const updatedBranch = await Branch.findByIdAndUpdate(
       req.body.branchId,
       {
         $push: { staffs: savedStaff._id },

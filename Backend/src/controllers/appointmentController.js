@@ -1,4 +1,5 @@
 import { Appointment } from "../models/Appointment.js";
+import { findOrCreateClient } from "./clientController.js";
 
 export const createAppointment = async (req, res) => {
     try {
@@ -12,6 +13,9 @@ export const createAppointment = async (req, res) => {
             date,
             time,
             notes,
+            branchId,
+            clientId,
+            price
         } = req.body;
 
         // Basic validation
@@ -27,6 +31,17 @@ export const createAppointment = async (req, res) => {
             return res.status(400).json({ message: "All fields are required" });
         }
 
+        // Find or Create Client
+        let finalClientId = clientId;
+        if (!finalClientId) {
+            const client = await findOrCreateClient({
+                name: customerName,
+                email,
+                phone
+            });
+            finalClientId = client._id;
+        }
+
         const newAppointment = new Appointment({
             customerName,
             email,
@@ -37,6 +52,9 @@ export const createAppointment = async (req, res) => {
             date,
             time,
             notes,
+            branchId,
+            clientId: finalClientId,
+            price
         });
 
         const savedAppointment = await newAppointment.save();

@@ -18,6 +18,19 @@ const appointmentSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
+        branchId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Branch",
+            // Making it optional for now to support old data or single-branch setup default
+        },
+        clientId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Client",
+        },
+        price: {
+            type: Number,
+            default: 0
+        },
         category: {
             type: String,
             required: true,
