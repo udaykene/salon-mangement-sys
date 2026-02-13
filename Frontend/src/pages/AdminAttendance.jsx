@@ -358,149 +358,87 @@ const AdminAttendance = () => {
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                  <i className="ri-team-line text-rose-600"></i>
-                  Staff List — {formatDisplayDate(selectedDate)}
-                </h2>
-                <span className="text-xs text-gray-600">
-                  Showing {filteredStaffList.length} of {staffList.length}
-                </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredStaffList.map((member) => (
+              <div
+                key={member._id}
+                className="bg-white rounded-2xl shadow-lg shadow-rose-500/5 border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-rose-500/10 transition-all group"
+              >
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200 text-xl flex-shrink-0">
+                        {member.name ? member.name.charAt(0) : "S"}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                          {member.name || "Unknown"}
+                        </h3>
+                        <p className="text-sm text-gray-500 font-medium">
+                          {member.role || "Staff"}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${(member.status || member.staffStatus) === "active"
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : (member.status || member.staffStatus) === "on-leave"
+                            ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                            : "bg-red-50 text-red-700 border-red-200"
+                        }`}
+                    >
+                      {(member.status || member.staffStatus) === "on-leave"
+                        ? "On Leave"
+                        : (member.status || member.staffStatus || "Active")
+                          .charAt(0)
+                          .toUpperCase() +
+                        (member.status || member.staffStatus || "active").slice(1)}
+                    </span>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-2 mb-6">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <i className="ri-building-line text-rose-500"></i>
+                      <span className="font-medium">
+                        {getBranchName(member.branchId)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <i className="ri-phone-line text-rose-500"></i>
+                      <span>{member.phone || "No Phone"}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => markAttendance(member._id, "present")}
+                      disabled={markingId === member._id}
+                      className={`py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${member.attendance === "present"
+                          ? "bg-green-500 text-white shadow-lg shadow-green-500/30 ring-2 ring-green-500 ring-offset-2"
+                          : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 border border-gray-200"
+                        } disabled:opacity-50`}
+                    >
+                      <i className="ri-checkbox-circle-line text-lg"></i>
+                      Present
+                    </button>
+                    <button
+                      onClick={() => markAttendance(member._id, "absent")}
+                      disabled={markingId === member._id}
+                      className={`py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${member.attendance === "absent"
+                          ? "bg-red-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-500 ring-offset-2"
+                          : "bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-600 border border-gray-200"
+                        } disabled:opacity-50`}
+                    >
+                      <i className="ri-close-circle-line text-lg"></i>
+                      Absent
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Desktop Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">
-                      Staff Member
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">
-                      Role
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">
-                      Branch
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-600">
-                      Status
-                    </th>
-                    <th className="text-center px-4 py-3 text-xs font-semibold text-gray-600">
-                      Attendance
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStaffList.map((member) => {
-                    console.log(
-                      "DEBUG: AdminAttendance mapping member:",
-                      member.name,
-                    );
-                    return (
-                      <tr
-                        key={member._id}
-                        className="border-b border-gray-100 hover:bg-rose-50/30 transition-colors"
-                      >
-                        {/* Name & Avatar */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-semibold border border-rose-200 text-sm flex-shrink-0">
-                              {member.name ? member.name.charAt(0) : "S"}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900 text-sm">
-                                {member.name || "Unknown"}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {member.phone || "No Phone"}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Role */}
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-purple-50 text-purple-700">
-                            {member.role || "Staff"}
-                          </span>
-                        </td>
-
-                        {/* Branch */}
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
-                            {getBranchName(member.branchId)}
-                          </span>
-                        </td>
-
-                        {/* Staff Status */}
-                        <td className="px-4 py-3">
-                          <span
-                            className={`px-2 py-1 rounded-md text-xs font-medium ${(member.status || member.staffStatus) === "active"
-                                ? "bg-green-50 text-green-700"
-                                : (member.status || member.staffStatus) ===
-                                  "on-leave"
-                                  ? "bg-yellow-50 text-yellow-700"
-                                  : "bg-red-50 text-red-700"
-                              }`}
-                          >
-                            {(member.status || member.staffStatus) ===
-                              "on-leave"
-                              ? "On Leave"
-                              : (
-                                member.status ||
-                                member.staffStatus ||
-                                "Active"
-                              )
-                                .charAt(0)
-                                .toUpperCase() +
-                              (
-                                member.status ||
-                                member.staffStatus ||
-                                "active"
-                              ).slice(1)}
-                          </span>
-                        </td>
-
-                        {/* Attendance Toggle */}
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() =>
-                                markAttendance(member._id, "present")
-                              }
-                              disabled={markingId === member._id}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${member.attendance === "present"
-                                  ? "bg-green-500 text-white"
-                                  : "bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                                } disabled:opacity-50`}
-                            >
-                              <i className="ri-checkbox-circle-line mr-1"></i>
-                              Present
-                            </button>
-                            <button
-                              onClick={() =>
-                                markAttendance(member._id, "absent")
-                              }
-                              disabled={markingId === member._id}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${member.attendance === "absent"
-                                  ? "bg-red-500 text-white"
-                                  : "bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-700"
-                                } disabled:opacity-50`}
-                            >
-                              <i className="ri-close-circle-line mr-1"></i>
-                              Absent
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            ))}
           </div>
         )}
 
