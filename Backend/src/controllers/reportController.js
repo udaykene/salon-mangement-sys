@@ -1,6 +1,7 @@
 import { Appointment } from "../models/Appointment.js";
 import { Client } from "../models/client.model.js";
 import Service from "../models/services.model.js";
+import Staff from "../models/staff.model.js";
 
 export const getReportSummary = async (req, res) => {
   try {
@@ -173,20 +174,56 @@ export const getReportSummary = async (req, res) => {
       service: app.service,
       amount: app.price || servicePriceMap[app.service] || 0,
       date: app.date,
+      time: app.time,
       status: app.status,
-      type: "Service", // Static for now as usually service payment
+      stylist: app.staff,
+      phone: app.phone,
+      type: "Service",
       avatar: app.customerName ? app.customerName.charAt(0).toUpperCase() : "?",
     }));
+
+    // --- Dashboard Specific Stats (Today's Data) ---
+    const today = new Date();
+    const todayString = today.toISOString().split("T")[0]; // YYYY-MM-DD
+
+    const todayAppointments = allAppointments.filter(
+      (app) => app.date === todayString
+    );
+
+    const todayStats = {
+      total: todayAppointments.length,
+      confirmed: todayAppointments.filter((app) => app.status === "Confirmed").length,
+      pending: todayAppointments.filter((app) => app.status === "Pending").length,
+      completed: todayAppointments.filter((app) => app.status === "Completed").length,
+      cancelled: todayAppointments.filter((app) => app.status === "Cancelled").length,
+      checkedIn: todayAppointments.filter((app) => app.status === "Checked In").length, // Assuming 'Checked In' status exists or mapped
+      waiting: todayAppointments.filter((app) => app.status === "Waiting").length, // Assuming 'Waiting' status exists
+    };
+
+    // Active Staff Count
+    const activeStaffCount = await Staff.countDocuments({
+      branchId: branchId,
+      status: "active"
+    });
+
+    const staffMembers = await Staff.find({ branchId }).select("name role status"); // Fetch simple list
+
+    // Total Active Clients (All time for branch)
+    const activeClientsCount = await Client.countDocuments(branchId ? { branchId } : {});
 
     // --- Final Response ---
     const summary = {
       totalRevenue: currentMetrics.revenue,
       totalAppointments: currentMetrics.count,
       newClients: newClientsCount,
+      activeClients: activeClientsCount,
+      activeStaff: activeStaffCount,
       avgTransaction,
       serviceRevenue: currentMetrics.serviceRev,
       chartData,
       recentTransactions: recentApts,
+      todayStats, // NEW: For Dashboard cards
+      staffMembers, // NEW: For staff widget
       trends: {
         revenue: revenueTrend,
         appointments: countTrend,

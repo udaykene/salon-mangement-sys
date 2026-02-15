@@ -1,56 +1,81 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "../components/AdminSidebar";
 import AdminLayout from "../components/AdminLayout";
+import { useBranch } from "../context/BranchContext";
+import axios from "axios";
 
 const AdminDashboard = () => {
+  const { currentBranch } = useBranch();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [stats, setStats] = useState({
-    todayAppointments: 12,
-    totalRevenue: 45670,
-    activeClients: 342,
-    staffMembers: 15,
+    todayAppointments: 0,
+    totalRevenue: 0,
+    activeClients: 0,
+    staffMembers: 0,
+    activeStaffForToday: 0, // Added to track staff on duty
   });
 
-  const [recentAppointments] = useState([
-    {
-      id: 1,
-      client: "Sarah Johnson",
-      service: "Hair Styling & Color",
-      time: "10:00 AM",
-      status: "confirmed",
-      stylist: "Emma Williams",
-    },
-    {
-      id: 2,
-      client: "Michael Brown",
-      service: "Spa Massage",
-      time: "11:30 AM",
-      status: "pending",
-      stylist: "Lisa Anderson",
-    },
-    {
-      id: 3,
-      client: "Jessica Davis",
-      service: "Bridal Makeup",
-      time: "02:00 PM",
-      status: "confirmed",
-      stylist: "Maria Garcia",
-    },
-    {
-      id: 4,
-      client: "David Wilson",
-      service: "Haircut & Beard Trim",
-      time: "03:30 PM",
-      status: "completed",
-      stylist: "John Smith",
-    },
-  ]);
+  const [recentAppointments, setRecentAppointments] = useState([]);
+  const [topServices, setTopServices] = useState([]);
 
-  const [topServices] = useState([
-    { name: "Hair Styling", bookings: 156, revenue: 18720, trend: "+12%" },
-    { name: "Spa & Massage", bookings: 132, revenue: 15840, trend: "+8%" },
-    { name: "Bridal Makeup", bookings: 89, revenue: 26700, trend: "+15%" },
-    { name: "Nail Art", bookings: 98, revenue: 9800, trend: "+5%" },
-  ]);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!currentBranch) return;
+
+      try {
+        setLoading(true);
+        // Fetch report summary for the current branch
+        const response = await axios.get(
+          `/api/reports/summary?branchId=${currentBranch._id}&period=month`
+        );
+        const data = response.data;
+
+        // Update Stats
+        setStats({
+          todayAppointments: data.todayStats?.total || 0,
+          totalRevenue: data.totalRevenue || 0,
+          activeClients: data.activeClients || 0, // Using total active clients
+          staffMembers: data.activeStaff || 0,
+          activeStaffForToday: data.activeStaff || 0, // Approximation for now
+        });
+
+        // Update Recent Appointments
+        const formattedRecent = (data.recentTransactions || []).slice(0, 4).map((app) => ({
+          id: app.id,
+          client: app.client,
+          service: app.service,
+          time: app.time || "N/A", // Ensure time is handled
+          status: app.status?.toLowerCase() || "pending",
+          stylist: app.stylist || "Assigned Staff",
+        }));
+        setRecentAppointments(formattedRecent);
+
+        // Update Top Services (Transforming serviceRevenue map to array)
+        if (data.serviceRevenue) {
+          const servicesArray = Object.entries(data.serviceRevenue).map(([name, revenue]) => ({
+            name,
+            revenue,
+            bookings: 0, // Note: Bookings count per service might need a separate aggregation if critical
+            trend: "N/A" // Trend calculation would need historical service breakdown
+          }));
+          // Sort by revenue descending
+          servicesArray.sort((a, b) => b.revenue - a.revenue);
+          setTopServices(servicesArray.slice(0, 4));
+        }
+
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [currentBranch]);
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -67,6 +92,16 @@ const AdminDashboard = () => {
     }
   };
 
+  if (loading && !stats.totalRevenue) { // Only show loading if initial load
+    return (
+      <AdminLayout>
+        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+        </main>
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout>
       {/* Main Content */}
@@ -77,7 +112,7 @@ const AdminDashboard = () => {
             Dashboard Overview
           </h1>
           <p className="text-gray-600">
-            Welcome back! Here's what's happening today.
+            Welcome back! Here's what's happening today at <span className="font-semibold text-rose-600">{currentBranch?.name}</span>.
           </p>
         </div>
 
@@ -90,7 +125,7 @@ const AdminDashboard = () => {
                 <i className="ri-calendar-check-line text-white text-2xl"></i>
               </div>
               <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                +3 today
+                Today
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">
@@ -100,7 +135,7 @@ const AdminDashboard = () => {
               {stats.todayAppointments}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              4 pending confirmations
+              Scheduled for today
             </p>
           </div>
 
@@ -111,7 +146,7 @@ const AdminDashboard = () => {
                 <i className="ri-money-rupee-circle-line text-white text-2xl"></i>
               </div>
               <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                +12% MTD
+                Month
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">
@@ -130,7 +165,7 @@ const AdminDashboard = () => {
                 <i className="ri-user-heart-line text-white text-2xl"></i>
               </div>
               <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                +8% growth
+                Active
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">
@@ -139,7 +174,7 @@ const AdminDashboard = () => {
             <p className="text-3xl font-bold text-gray-900">
               {stats.activeClients}
             </p>
-            <p className="text-xs text-gray-500 mt-2">25 new this week</p>
+            <p className="text-xs text-gray-500 mt-2">Total registered</p>
           </div>
 
           {/* Staff Members */}
@@ -149,7 +184,7 @@ const AdminDashboard = () => {
                 <i className="ri-team-line text-white text-2xl"></i>
               </div>
               <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                All active
+                Active
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">
@@ -158,7 +193,7 @@ const AdminDashboard = () => {
             <p className="text-3xl font-bold text-gray-900">
               {stats.staffMembers}
             </p>
-            <p className="text-xs text-gray-500 mt-2">12 on duty today</p>
+            <p className="text-xs text-gray-500 mt-2">{stats.activeStaffForToday} active staff</p>
           </div>
         </div>
 
@@ -170,7 +205,7 @@ const AdminDashboard = () => {
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
                   <i className="ri-calendar-line text-rose-600"></i>
-                  Today's Appointments
+                  Recent Activity
                 </h2>
                 <button className="text-sm text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
                   View All
@@ -179,46 +214,50 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="divide-y divide-gray-100">
-              {recentAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="p-6 hover:bg-rose-50/30 transition-colors group"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200">
-                        {appointment.client.charAt(0)}
+              {recentAppointments.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">No recent appointments found.</div>
+              ) : (
+                recentAppointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="p-6 hover:bg-rose-50/30 transition-colors group"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200">
+                          {appointment.client ? appointment.client.charAt(0) : "?"}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">
+                            {appointment.client}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {appointment.service}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900">
-                          {appointment.client}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {appointment.service}
-                        </p>
-                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                          appointment.status,
+                        )}`}
+                      >
+                        {appointment.status.charAt(0).toUpperCase() +
+                          appointment.status.slice(1)}
+                      </span>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                        appointment.status,
-                      )}`}
-                    >
-                      {appointment.status.charAt(0).toUpperCase() +
-                        appointment.status.slice(1)}
-                    </span>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <i className="ri-time-line text-rose-500"></i>
+                        {appointment.time}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <i className="ri-scissors-2-line text-rose-500"></i>
+                        {appointment.stylist}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <i className="ri-time-line text-rose-500"></i>
-                      {appointment.time}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <i className="ri-scissors-2-line text-rose-500"></i>
-                      {appointment.stylist}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -230,34 +269,39 @@ const AdminDashboard = () => {
                 Top Services
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                This month's performance
+                By Revenue (This Month)
               </p>
             </div>
             <div className="p-6 space-y-6">
-              {topServices.map((service, index) => (
-                <div key={index} className="group">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900">
-                      {service.name}
-                    </h3>
-                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                      {service.trend}
-                    </span>
+              {topServices.length === 0 ? (
+                <div className="text-center text-gray-500">No service data available.</div>
+              ) : (
+                topServices.map((service, index) => (
+                  <div key={index} className="group">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-gray-900">
+                        {service.name}
+                      </h3>
+                      {/* Trend badge removed as we don't have historical data for trend yet */}
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                      {/* <span>{service.bookings} bookings</span> */}
+                      {/* Booking count hidden as we only have revenue sum in this iteration */}
+                      <span>Revenue</span>
+                      <span className="font-semibold text-gray-900">
+                        ₹{service.revenue.toLocaleString()}
+                      </span>
+                    </div>
+                    {/* Progress bar normalized to max revenue in list or arbitrary max if single */}
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500 group-hover:from-rose-600 group-hover:to-pink-600"
+                        style={{ width: `${(service.revenue / (topServices[0]?.revenue || 1)) * 100}%` }}
+                      ></div>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                    <span>{service.bookings} bookings</span>
-                    <span className="font-semibold text-gray-900">
-                      ₹{service.revenue.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full transition-all duration-500 group-hover:from-rose-600 group-hover:to-pink-600"
-                      style={{ width: `${(service.bookings / 160) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
