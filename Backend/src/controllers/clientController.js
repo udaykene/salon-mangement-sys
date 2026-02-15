@@ -1,4 +1,4 @@
-import { Client } from "../models/Client.js";
+import { Client } from "../models/client.model.js";
 import { Appointment } from "../models/Appointment.js";
 
 // Helper to generate a consistent gradient based on name/id (mocking for now)

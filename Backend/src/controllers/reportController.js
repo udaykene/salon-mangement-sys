@@ -1,5 +1,5 @@
 import { Appointment } from "../models/Appointment.js";
-import { Client } from "../models/Client.js";
+import { Client } from "../models/client.model.js";
 import Service from "../models/services.model.js";
 
 export const getReportSummary = async (req, res) => {
