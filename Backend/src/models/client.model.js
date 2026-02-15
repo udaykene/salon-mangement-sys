@@ -19,7 +19,7 @@ const clientSchema = new mongoose.Schema(
       required: true,
       trim: true,
       lowercase: true,
-      unique: true,
+      index: true,
     },
     phone: {
       type: String,
@@ -42,7 +42,7 @@ const clientSchema = new mongoose.Schema(
     },
     totalSpent: {
       type: Number,
-      default: 0, 
+      default: 0,
     },
     lastVisit: {
       type: Date,
@@ -53,7 +53,10 @@ const clientSchema = new mongoose.Schema(
       default: "",
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
+
+// Compound index for email uniqueness per branch
+clientSchema.index({ email: 1, branchId: 1 }, { unique: true });
 
 export const Client = mongoose.model("Client", clientSchema);

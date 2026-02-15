@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
-
+import { useBranch } from "../context/BranchContext";
 import axios from "axios";
 
 const SalonAdminClients = () => {
-  const [filterStatus, setFilterStatus] = useState("all");
+  const { branches } = useBranch();
+  const [filterBranch, setFilterBranch] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,7 @@ const SalonAdminClients = () => {
     email: "",
     phone: "",
     location: "",
+    branchId: "",
   });
 
   const handleView = (client) => {
@@ -24,7 +26,7 @@ const SalonAdminClients = () => {
 
   useEffect(() => {
     fetchClients();
-  }, []);
+  }, [filterBranch]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -35,14 +37,14 @@ const SalonAdminClients = () => {
     setIsSubmitting(true);
     try {
       if (formData.id) {
-        await axios.put(`http://localhost:3000/api/clients/${formData.id}`, formData);
+        await axios.put(`/api/clients/${formData.id}`, formData);
         alert("Client updated successfully!");
       } else {
-        await axios.post("http://localhost:3000/api/clients", formData);
+        await axios.post("/api/clients", formData);
         alert("Client added successfully!");
       }
       setShowModal(false);
-      setFormData({ name: "", email: "", phone: "", location: "" });
+      setFormData({ name: "", email: "", phone: "", location: "", branchId: "" });
       fetchClients();
     } catch (error) {
       console.error("Error saving client:", error);
@@ -59,6 +61,7 @@ const SalonAdminClients = () => {
       email: client.email,
       phone: client.phone,
       location: client.location,
+      branchId: client.branchId,
     });
     setShowModal(true);
   };
@@ -66,19 +69,27 @@ const SalonAdminClients = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this client?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/clients/${id}`);
+        await axios.delete(`/api/clients/${id}`);
         fetchClients();
         alert("Client deleted successfully");
       } catch (error) {
         console.error("Error deleting client:", error);
-        alert("Failed to delete client");
+        alert(error.response?.data?.message || "Failed to delete client");
       }
     }
   };
 
   const fetchClients = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3000/api/clients");
+      setLoading(true);
+      let url = "/api/clients";
+      
+      // Add branch filter if specific branch is selected
+      if (filterBranch !== "all") {
+        url += `?branchId=${filterBranch}`;
+      }
+      
+      const { data } = await axios.get(url);
       setClients(data);
     } catch (error) {
       console.error("Error fetching clients:", error);
@@ -88,26 +99,23 @@ const SalonAdminClients = () => {
   };
 
   // ── derived ──────────────────────────────────
-  const counts = clients.reduce(
-    (acc, c) => {
-      acc[c.status] = (acc[c.status] || 0) + 1;
-      return acc;
-    },
-    { active: 0, inactive: 0 },
-  );
-
   const filtered = clients.filter((c) => {
-    const matchStatus = filterStatus === "all" || c.status === filterStatus;
     const matchSearch =
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.location.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchSearch;
   });
 
   const totalSpent = clients.reduce((sum, c) => {
     return sum + Number(c.spent.replace(/[$,]/g, ""));
   }, 0);
+
+  // Get branch name by ID
+  const getBranchName = (branchId) => {
+    const branch = branches.find((b) => b._id === branchId);
+    return branch ? branch.name : "Unknown Branch";
+  };
 
   // ══════════════════════════════════════════════
   return (
@@ -125,7 +133,7 @@ const SalonAdminClients = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Total Clients */}
           <div className="bg-white rounded-2xl p-6 shadow-lg shadow-rose-500/5 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/10 transition-all group">
             <div className="flex items-center justify-between mb-4">
@@ -145,42 +153,23 @@ const SalonAdminClients = () => {
             <p className="text-xs text-gray-500 mt-2">Registered users</p>
           </div>
 
-          {/* Active Clients */}
+          {/* Total Visits */}
           <div className="bg-white rounded-2xl p-6 shadow-lg shadow-green-500/5 border border-green-100 hover:shadow-xl hover:shadow-green-500/10 transition-all group">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-user-heart-line text-white text-2xl"></i>
+                <i className="ri-scissors-2-line text-white text-2xl"></i>
               </div>
               <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                +{Math.floor((counts.active / clients.length) * 100)}%
+                Visits
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Active Clients
+              Total Visits
             </h3>
             <p className="text-3xl font-bold text-gray-900">
-              {counts.active}
+              {clients.reduce((sum, c) => sum + c.visits, 0)}
             </p>
-            <p className="text-xs text-gray-500 mt-2">Regular visitors</p>
-          </div>
-
-          {/* Inactive Clients */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-red-500/5 border border-red-100 hover:shadow-xl hover:shadow-red-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-user-unfollow-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                Inactive
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Inactive Clients
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {counts.inactive}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">Need attention</p>
+            <p className="text-xs text-gray-500 mt-2">All appointments</p>
           </div>
 
           {/* Total Revenue */}
@@ -206,23 +195,23 @@ const SalonAdminClients = () => {
         {/* Filter and Search Bar */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
           <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            {/* Status Filter Pills */}
-            <div className="flex flex-wrap gap-2">
-              {["all", "active", "inactive"].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setFilterStatus(s)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${filterStatus === s
-                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
-                    }`}
-                >
-                  <span className="capitalize">{s}</span>
-                  <span className="ml-1.5 opacity-75">
-                    ({s === "all" ? clients.length : counts[s]})
-                  </span>
-                </button>
-              ))}
+            {/* Branch Filter Dropdown */}
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-semibold text-gray-700">
+                Filter by Branch:
+              </label>
+              <select
+                value={filterBranch}
+                onChange={(e) => setFilterBranch(e.target.value)}
+                className="px-4 py-2 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 bg-white text-sm font-medium"
+              >
+                <option value="all">All Branches</option>
+                {branches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Search Box */}
@@ -250,15 +239,28 @@ const SalonAdminClients = () => {
                 All Clients ({filtered.length})
               </h2>
               <button
-                onClick={() => setShowModal(true)}
-                className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2">
+                onClick={() => {
+                  setFormData({ name: "", email: "", phone: "", location: "", branchId: "" });
+                  setShowModal(true);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2"
+              >
                 <i className="ri-user-add-line text-lg"></i>
                 New Client
               </button>
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i className="ri-loader-4-line text-4xl text-gray-400 animate-spin"></i>
+              </div>
+              <p className="text-gray-500 font-medium text-lg">
+                Loading clients...
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <i className="ri-user-search-line text-4xl text-gray-400"></i>
@@ -291,13 +293,8 @@ const SalonAdminClients = () => {
                           <h3 className="font-bold text-gray-900 text-lg">
                             {client.name}
                           </h3>
-                          <span
-                            className={`text-xs font-semibold px-3 py-1 rounded-full capitalize border ${client.status === "active"
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : "bg-red-100 text-red-700 border-red-200"
-                              }`}
-                          >
-                            {client.status}
+                          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                            {getBranchName(client.branchId)}
                           </span>
                         </div>
 
@@ -360,12 +357,15 @@ const SalonAdminClients = () => {
             </div>
           )}
         </div>
-        {/* Add Client Modal */}
+
+        {/* Add/Edit Client Modal */}
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
               <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-900">{formData.id ? "Edit Client" : "Add New Client"}</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {formData.id ? "Edit Client" : "Add New Client"}
+                </h3>
                 <button
                   onClick={() => setShowModal(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -376,7 +376,9 @@ const SalonAdminClients = () => {
 
               <form onSubmit={handleCreateClient} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
                   <input
                     type="text"
                     name="name"
@@ -389,7 +391,9 @@ const SalonAdminClients = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
                   <input
                     type="email"
                     name="email"
@@ -402,7 +406,9 @@ const SalonAdminClients = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
                   <input
                     type="tel"
                     name="phone"
@@ -415,7 +421,9 @@ const SalonAdminClients = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
                   <input
                     type="text"
                     name="location"
@@ -424,6 +432,26 @@ const SalonAdminClients = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
                     placeholder="e.g. Downtown"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Branch
+                  </label>
+                  <select
+                    name="branchId"
+                    required
+                    value={formData.branchId}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                  >
+                    <option value="">Select Branch</option>
+                    {branches.map((branch) => (
+                      <option key={branch._id} value={branch._id}>
+                        {branch.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -439,19 +467,26 @@ const SalonAdminClients = () => {
                     disabled={isSubmitting}
                     className="flex-1 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-lg shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {isSubmitting ? "Saving..." : (formData.id ? "Update Client" : "Save Client")}
+                    {isSubmitting
+                      ? "Saving..."
+                      : formData.id
+                        ? "Update Client"
+                        : "Save Client"}
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
         {/* View Client Modal */}
         {viewClient && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
               <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-xl font-bold text-gray-900">Client Details</h3>
+                <h3 className="text-xl font-bold text-gray-900">
+                  Client Details
+                </h3>
                 <button
                   onClick={() => setViewClient(null)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -462,13 +497,16 @@ const SalonAdminClients = () => {
 
               <div className="p-6 space-y-6">
                 <div className="flex flex-col items-center">
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${viewClient.gradient} flex items-center justify-center text-white text-3xl font-bold shadow-lg mb-4`}>
+                  <div
+                    className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${viewClient.gradient} flex items-center justify-center text-white text-3xl font-bold shadow-lg mb-4`}
+                  >
                     {viewClient.avatar}
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">{viewClient.name}</h2>
-                  <span className={`mt-2 px-3 py-1 rounded-full text-xs font-semibold capitalize border ${viewClient.status === 'active' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
-                    }`}>
-                    {viewClient.status}
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {viewClient.name}
+                  </h2>
+                  <span className="mt-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                    {getBranchName(viewClient.branchId)}
                   </span>
                 </div>
 
@@ -479,7 +517,9 @@ const SalonAdminClients = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-medium">Email</p>
-                      <p className="text-gray-900 font-semibold">{viewClient.email}</p>
+                      <p className="text-gray-900 font-semibold">
+                        {viewClient.email}
+                      </p>
                     </div>
                   </div>
 
@@ -489,7 +529,9 @@ const SalonAdminClients = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 font-medium">Phone</p>
-                      <p className="text-gray-900 font-semibold">{viewClient.phone}</p>
+                      <p className="text-gray-900 font-semibold">
+                        {viewClient.phone}
+                      </p>
                     </div>
                   </div>
 
@@ -498,19 +540,31 @@ const SalonAdminClients = () => {
                       <i className="ri-map-pin-line text-lg"></i>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-medium">Location</p>
-                      <p className="text-gray-900 font-semibold">{viewClient.location}</p>
+                      <p className="text-xs text-gray-500 font-medium">
+                        Location
+                      </p>
+                      <p className="text-gray-900 font-semibold">
+                        {viewClient.location}
+                      </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-center">
-                      <p className="text-xs text-rose-600 font-medium mb-1">Total Visits</p>
-                      <p className="text-xl font-bold text-rose-700">{viewClient.visits}</p>
+                      <p className="text-xs text-rose-600 font-medium mb-1">
+                        Total Visits
+                      </p>
+                      <p className="text-xl font-bold text-rose-700">
+                        {viewClient.visits}
+                      </p>
                     </div>
                     <div className="p-3 bg-pink-50 rounded-xl border border-pink-100 text-center">
-                      <p className="text-xs text-pink-600 font-medium mb-1">Total Spent</p>
-                      <p className="text-xl font-bold text-pink-700">{viewClient.spent}</p>
+                      <p className="text-xs text-pink-600 font-medium mb-1">
+                        Total Spent
+                      </p>
+                      <p className="text-xl font-bold text-pink-700">
+                        {viewClient.spent}
+                      </p>
                     </div>
                   </div>
                 </div>

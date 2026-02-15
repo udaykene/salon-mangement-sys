@@ -1,120 +1,92 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReceptionistLayout from "../components/ReceptionistLayout";
+import axios from "axios";
 
 const ReceptionistClients = () => {
-  const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [viewClient, setViewClient] = useState(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    location: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [clients] = useState([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah.j@email.com",
-      phone: "+91 98765 43210",
-      status: "active",
-      location: "Downtown",
-      visits: 14,
-      spent: "₹45,240",
-      avatar: "S",
-      gradient: "from-rose-500 to-pink-500",
-      lastVisit: "2026-02-05",
-      upcomingAppointment: "2026-02-10 - Hair Styling",
-    },
-    {
-      id: 2,
-      name: "Emily Davis",
-      email: "emily.d@email.com",
-      phone: "+91 98765 43211",
-      status: "active",
-      location: "Midtown",
-      visits: 8,
-      spent: "₹28,680",
-      avatar: "E",
-      gradient: "from-pink-500 to-fuchsia-500",
-      lastVisit: "2026-02-03",
-      upcomingAppointment: "2026-02-08 - Hair Coloring",
-    },
-    {
-      id: 3,
-      name: "Lisa Morgan",
-      email: "lisa.m@email.com",
-      phone: "+91 98765 43212",
-      status: "inactive",
-      location: "Westside",
-      visits: 3,
-      spent: "₹12,310",
-      avatar: "L",
-      gradient: "from-purple-500 to-pink-500",
-      lastVisit: "2025-12-20",
-      upcomingAppointment: null,
-    },
-    {
-      id: 4,
-      name: "Jessica Wright",
-      email: "jessica.w@email.com",
-      phone: "+91 98765 43213",
-      status: "active",
-      location: "Eastend",
-      visits: 21,
-      spent: "₹82,100",
-      avatar: "J",
-      gradient: "from-blue-500 to-cyan-500",
-      lastVisit: "2026-02-06",
-      upcomingAppointment: "2026-02-12 - Nail Art",
-    },
-    {
-      id: 5,
-      name: "Anna Klein",
-      email: "anna.k@email.com",
-      phone: "+91 98765 43214",
-      status: "active",
-      location: "Uptown",
-      visits: 6,
-      spent: "₹22,520",
-      avatar: "A",
-      gradient: "from-rose-400 to-pink-400",
-      lastVisit: "2026-02-04",
-      upcomingAppointment: "2026-02-09 - Hair Styling",
-    },
-    {
-      id: 6,
-      name: "Maria Santos",
-      email: "maria.s@email.com",
-      phone: "+91 98765 43215",
-      status: "inactive",
-      location: "Harbor",
-      visits: 2,
-      spent: "₹8,180",
-      avatar: "M",
-      gradient: "from-pink-400 to-fuchsia-400",
-      lastVisit: "2025-11-15",
-      upcomingAppointment: null,
-    },
-  ]);
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axios.get("/api/clients");
+      setClients(data);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      alert(error.response?.data?.message || "Failed to fetch clients");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCreateClient = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      if (formData.id) {
+        // Update existing client
+        await axios.put(`/api/clients/${formData.id}`, formData);
+        alert("Client updated successfully!");
+      } else {
+        // Create new client (branchId will be set automatically by backend)
+        await axios.post("/api/clients", formData);
+        alert("Client added successfully!");
+      }
+      setShowModal(false);
+      setFormData({ name: "", email: "", phone: "", location: "" });
+      fetchClients();
+    } catch (error) {
+      console.error("Error saving client:", error);
+      alert(error.response?.data?.message || "Failed to save client");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (client) => {
+    setFormData({
+      id: client.id,
+      name: client.name,
+      email: client.email,
+      phone: client.phone,
+      location: client.location,
+    });
+    setShowModal(true);
+  };
+
+  const handleView = (client) => {
+    setViewClient(client);
+  };
 
   // ── derived ──────────────────────────────────
-  const counts = clients.reduce(
-    (acc, c) => {
-      acc[c.status] = (acc[c.status] || 0) + 1;
-      return acc;
-    },
-    { active: 0, inactive: 0 }
-  );
-
   const filtered = clients.filter((c) => {
-    const matchStatus = filterStatus === "all" || c.status === filterStatus;
     const matchSearch =
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.phone.includes(searchTerm) ||
       c.location.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchSearch;
   });
 
   const totalClients = clients.length;
-  const activeToday = clients.filter(
-    (c) => c.upcomingAppointment && c.upcomingAppointment.includes("2026-02-08")
-  ).length;
 
   // ══════════════════════════════════════════════
   return (
@@ -127,12 +99,12 @@ const ReceptionistClients = () => {
             Client Directory
           </h1>
           <p className="text-gray-600">
-            View client information and contact details
+            View and manage client information
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Total Clients */}
           <div className="bg-white rounded-2xl p-6 shadow-lg shadow-rose-500/5 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/10 transition-all group">
             <div className="flex items-center justify-between mb-4">
@@ -150,85 +122,50 @@ const ReceptionistClients = () => {
             <p className="text-xs text-gray-500 mt-2">Registered users</p>
           </div>
 
-          {/* Active Clients */}
+          {/* Total Visits */}
           <div className="bg-white rounded-2xl p-6 shadow-lg shadow-green-500/5 border border-green-100 hover:shadow-xl hover:shadow-green-500/10 transition-all group">
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-user-heart-line text-white text-2xl"></i>
+                <i className="ri-scissors-2-line text-white text-2xl"></i>
               </div>
               <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                Active
+                Visits
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Active Clients
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">{counts.active}</p>
-            <p className="text-xs text-gray-500 mt-2">Regular visitors</p>
-          </div>
-
-          {/* Expected Today */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-blue-500/5 border border-blue-100 hover:shadow-xl hover:shadow-blue-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-calendar-check-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                Today
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Expected Today
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">{activeToday}</p>
-            <p className="text-xs text-gray-500 mt-2">With appointments</p>
-          </div>
-
-          {/* Inactive Clients */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-orange-500/5 border border-orange-100 hover:shadow-xl hover:shadow-orange-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-user-unfollow-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
-                Inactive
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Inactive Clients
+              Total Visits
             </h3>
             <p className="text-3xl font-bold text-gray-900">
-              {counts.inactive}
+              {clients.reduce((sum, c) => sum + c.visits, 0)}
             </p>
-            <p className="text-xs text-gray-500 mt-2">Need follow-up</p>
+            <p className="text-xs text-gray-500 mt-2">All appointments</p>
+          </div>
+
+          {/* Total Revenue */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-purple-500/5 border border-purple-100 hover:shadow-xl hover:shadow-purple-500/10 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:scale-110 transition-transform">
+                <i className="ri-wallet-3-line text-white text-2xl"></i>
+              </div>
+              <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                Revenue
+              </span>
+            </div>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">
+              Total Revenue
+            </h3>
+            <p className="text-3xl font-bold text-gray-900">
+              ${clients.reduce((sum, c) => sum + Number(c.spent.replace(/[$,]/g, "")), 0).toLocaleString()}
+            </p>
+            <p className="text-xs text-gray-500 mt-2">From all clients</p>
           </div>
         </div>
 
-        {/* Filter and Search Bar */}
+        {/* Search Bar */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
           <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            {/* Status Filter Pills */}
-            <div className="flex flex-wrap gap-2">
-              {["all", "active", "inactive"].map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setFilterStatus(s)}
-                  className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
-                    filterStatus === s
-                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
-                      : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
-                  }`}
-                >
-                  <span className="capitalize">{s}</span>
-                  <span className="ml-1.5 opacity-75">
-                    ({s === "all" ? clients.length : counts[s]})
-                  </span>
-                </button>
-              ))}
-            </div>
-
             {/* Search Box */}
-            <div className="w-full lg:w-auto">
+            <div className="w-full">
               <div className="relative">
                 <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
                 <input
@@ -236,7 +173,7 @@ const ReceptionistClients = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by name, email, phone..."
-                  className="w-full lg:w-96 pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:bg-white transition-all text-sm"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:bg-white transition-all text-sm"
                 />
               </div>
             </div>
@@ -251,10 +188,29 @@ const ReceptionistClients = () => {
                 <i className="ri-user-3-line text-rose-600"></i>
                 Client Directory ({filtered.length})
               </h2>
+              <button
+                onClick={() => {
+                  setFormData({ name: "", email: "", phone: "", location: "" });
+                  setShowModal(true);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-sm font-bold rounded-lg shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2"
+              >
+                <i className="ri-user-add-line text-lg"></i>
+                Add Client
+              </button>
             </div>
           </div>
 
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i className="ri-loader-4-line text-4xl text-gray-400 animate-spin"></i>
+              </div>
+              <p className="text-gray-500 font-medium text-lg">
+                Loading clients...
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <i className="ri-user-search-line text-4xl text-gray-400"></i>
@@ -263,7 +219,7 @@ const ReceptionistClients = () => {
                 No clients found
               </p>
               <p className="text-gray-400 text-sm mt-1">
-                Try adjusting your search or filters
+                Try adjusting your search
               </p>
             </div>
           ) : (
@@ -287,15 +243,6 @@ const ReceptionistClients = () => {
                           <h3 className="font-bold text-gray-900 text-lg">
                             {client.name}
                           </h3>
-                          <span
-                            className={`text-xs font-semibold px-3 py-1 rounded-full capitalize border ${
-                              client.status === "active"
-                                ? "bg-green-100 text-green-700 border-green-200"
-                                : "bg-red-100 text-red-700 border-red-200"
-                            }`}
-                          >
-                            {client.status}
-                          </span>
                         </div>
 
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
@@ -314,7 +261,7 @@ const ReceptionistClients = () => {
                         </div>
 
                         {/* Visit Info */}
-                        <div className="flex flex-wrap gap-2 mb-3">
+                        <div className="flex flex-wrap gap-2">
                           <span className="flex items-center gap-2 bg-rose-50 text-rose-600 text-xs font-semibold px-3 py-1.5 rounded-lg border border-rose-200">
                             <i className="ri-scissors-2-line"></i>
                             {client.visits} visits
@@ -323,44 +270,33 @@ const ReceptionistClients = () => {
                             <i className="ri-wallet-3-line"></i>
                             {client.spent} spent
                           </span>
-                          <span className="flex items-center gap-2 bg-blue-50 text-blue-600 text-xs font-semibold px-3 py-1.5 rounded-lg border border-blue-200">
-                            <i className="ri-calendar-line"></i>
-                            Last visit: {client.lastVisit}
-                          </span>
                         </div>
-
-                        {/* Upcoming Appointment */}
-                        {client.upcomingAppointment && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="text-gray-500">Next:</span>
-                            <span className="font-semibold text-gray-900">
-                              {client.upcomingAppointment}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex gap-2">
                       <button
+                        onClick={() => handleView(client)}
+                        className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center border-2 border-rose-200 hover:border-rose-500 shadow-sm"
+                        title="View Details"
+                      >
+                        <i className="ri-eye-line text-lg"></i>
+                      </button>
+                      <button
+                        onClick={() => handleEdit(client)}
+                        className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-500 hover:text-white transition-all flex items-center justify-center border-2 border-pink-200 hover:border-pink-500 shadow-sm"
+                        title="Edit"
+                      >
+                        <i className="ri-edit-line text-lg"></i>
+                      </button>
+                      <button
+                        onClick={() => window.location.href = `tel:${client.phone}`}
                         className="px-4 py-2 rounded-xl bg-green-500 text-white hover:bg-green-600 transition-all flex items-center gap-2 shadow-sm font-medium text-sm"
                         title="Call Client"
                       >
                         <i className="ri-phone-line"></i>
                         Call
-                      </button>
-                      <button
-                        className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-all flex items-center justify-center border-2 border-blue-200 hover:border-blue-500 shadow-sm"
-                        title="Send Email"
-                      >
-                        <i className="ri-mail-line text-lg"></i>
-                      </button>
-                      <button
-                        className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center border-2 border-rose-200 hover:border-rose-500 shadow-sm"
-                        title="View Details"
-                      >
-                        <i className="ri-eye-line text-lg"></i>
                       </button>
                     </div>
                   </div>
@@ -369,6 +305,205 @@ const ReceptionistClients = () => {
             </div>
           )}
         </div>
+
+        {/* Add/Edit Client Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">
+                  {formData.id ? "Edit Client" : "Add New Client"}
+                </h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <i className="ri-close-line text-2xl"></i>
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateClient} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. Sarah Johnson"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. sarah@example.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    required
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. +1 234 567 890"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none transition-all"
+                    placeholder="e.g. Downtown"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-bold rounded-lg shadow-lg shadow-rose-500/30 hover:shadow-xl hover:shadow-rose-500/40 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting
+                      ? "Saving..."
+                      : formData.id
+                        ? "Update Client"
+                        : "Save Client"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* View Client Modal */}
+        {viewClient && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Client Details
+                </h3>
+                <button
+                  onClick={() => setViewClient(null)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <i className="ri-close-line text-2xl"></i>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${viewClient.gradient} flex items-center justify-center text-white text-3xl font-bold shadow-lg mb-4`}
+                  >
+                    {viewClient.avatar}
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {viewClient.name}
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                      <i className="ri-mail-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">Email</p>
+                      <p className="text-gray-900 font-semibold">
+                        {viewClient.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                      <i className="ri-phone-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">Phone</p>
+                      <p className="text-gray-900 font-semibold">
+                        {viewClient.phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm">
+                      <i className="ri-map-pin-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">
+                        Location
+                      </p>
+                      <p className="text-gray-900 font-semibold">
+                        {viewClient.location}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-3 bg-rose-50 rounded-xl border border-rose-100 text-center">
+                      <p className="text-xs text-rose-600 font-medium mb-1">
+                        Total Visits
+                      </p>
+                      <p className="text-xl font-bold text-rose-700">
+                        {viewClient.visits}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-pink-50 rounded-xl border border-pink-100 text-center">
+                      <p className="text-xs text-pink-600 font-medium mb-1">
+                        Total Spent
+                      </p>
+                      <p className="text-xl font-bold text-pink-700">
+                        {viewClient.spent}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setViewClient(null)}
+                  className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-xl transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </ReceptionistLayout>
   );
