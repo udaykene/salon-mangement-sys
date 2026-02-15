@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { useBranch } from "../context/BranchContext";
-import { createService, updateService } from "../api/services";
-import { getCategories, createCategory } from "../api/categories";
 import { useAuth } from "../context/AuthContext";
+import { useService } from "../context/ServiceContext";
+import { useCategory } from "../context/CategoryContext";
+import {
+  GENDER_OPTIONS,
+  ICON_OPTIONS,
+  GRADIENT_OPTIONS,
+} from "../constants/serviceConstants";
 
 const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
   const { branches } = useBranch();
-  const [categories, setCategories] = useState([]);
+  const { user, role } = useAuth();
+  const { createService, updateService } = useService();
+  const { categories, fetchCategories, createCategory } = useCategory();
+
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const { user } = useAuth(); // Assuming useAuth is available or passed as prop
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -21,41 +30,25 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     icon: "ri-scissors-2-line",
     gradient: "from-rose-500 to-pink-500",
     status: "active",
-    branchId: user?.role === "receptionist" ? user.branchId : "",
+    branchId: role === "receptionist" ? user?.branchId : "",
   });
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   // Fetch categories when branch changes
   useEffect(() => {
     if (formData.branchId) {
       fetchCategories(formData.branchId);
     }
-  }, [formData.branchId]);
-
-  const fetchCategories = async (branchId) => {
-    try {
-      const response = await getCategories(branchId);
-      if (response.success) {
-        setCategories(response.categories);
-      }
-    } catch (err) {
-      console.error("Error fetching categories:", err);
-    }
-  };
+  }, [formData.branchId, fetchCategories]);
 
   // Populate form if editing
   useEffect(() => {
     if (editingService) {
       setFormData({
         name: editingService.name || "",
-        category: editingService.categoryId || editingService.category || "",
+        category: editingService.categoryId || "",
         gender: editingService.gender || "Unisex",
         description: editingService.desc || "",
-        price: editingService.price
-          ? editingService.price.replace("₹", "").trim()
-          : "",
+        price: editingService.price || "",
         duration: editingService.duration || "",
         icon: editingService.icon || "ri-scissors-2-line",
         gradient: editingService.gradient || "from-rose-500 to-pink-500",
@@ -69,13 +62,12 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     if (!newCategoryName.trim()) return;
     try {
       setLoading(true);
-      const response = await createCategory({
+      const cat = await createCategory({
         branchId: formData.branchId,
         name: newCategoryName.trim(),
       });
-      if (response.success) {
-        setCategories((prev) => [...prev, response.category]);
-        setFormData((prev) => ({ ...prev, category: response.category._id }));
+      if (cat) {
+        setFormData((prev) => ({ ...prev, category: cat._id }));
         setNewCategoryName("");
         setShowNewCategoryInput(false);
       }
@@ -86,66 +78,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     }
   };
 
-  const genderOptions = ["Men", "Female", "Unisex"];
-
-  const iconOptions = [
-    { value: "ri-scissors-2-line", label: "Scissors", category: "Hair" },
-    { value: "ri-scissors-cut-line", label: "Scissors Cut", category: "Hair" },
-    { value: "ri-palette-line", label: "Palette", category: "Hair" },
-    { value: "ri-brush-3-line", label: "Brush", category: "Makeup" },
-    { value: "ri-emotion-happy-line", label: "Happy Face", category: "Makeup" },
-    { value: "ri-emotion-line", label: "Face", category: "Spa" },
-    { value: "ri-user-heart-line", label: "User Heart", category: "Spa" },
-    { value: "ri-hand-heart-line", label: "Hand Heart", category: "Nails" },
-    { value: "ri-footprint-line", label: "Footprint", category: "Nails" },
-    { value: "ri-heart-pulse-line", label: "Heart Pulse", category: "Spa" },
-    { value: "ri-spa-line", label: "Spa", category: "Spa" },
-    { value: "ri-contrast-drop-line", label: "Drop", category: "Spa" },
-  ];
-
-  const gradientOptions = [
-    {
-      value: "from-rose-500 to-pink-500",
-      label: "Rose to Pink",
-      color: "bg-gradient-to-r from-rose-500 to-pink-500",
-    },
-    {
-      value: "from-pink-500 to-fuchsia-500",
-      label: "Pink to Fuchsia",
-      color: "bg-gradient-to-r from-pink-500 to-fuchsia-500",
-    },
-    {
-      value: "from-purple-500 to-pink-500",
-      label: "Purple to Pink",
-      color: "bg-gradient-to-r from-purple-500 to-pink-500",
-    },
-    {
-      value: "from-blue-500 to-cyan-500",
-      label: "Blue to Cyan",
-      color: "bg-gradient-to-r from-blue-500 to-cyan-500",
-    },
-    {
-      value: "from-rose-400 to-pink-400",
-      label: "Light Rose to Pink",
-      color: "bg-gradient-to-r from-rose-400 to-pink-400",
-    },
-    {
-      value: "from-pink-400 to-fuchsia-400",
-      label: "Light Pink to Fuchsia",
-      color: "bg-gradient-to-r from-pink-400 to-fuchsia-400",
-    },
-    {
-      value: "from-fuchsia-400 to-purple-400",
-      label: "Fuchsia to Purple",
-      color: "bg-gradient-to-r from-fuchsia-400 to-purple-400",
-    },
-    {
-      value: "from-purple-400 to-rose-400",
-      label: "Purple to Rose",
-      color: "bg-gradient-to-r from-purple-400 to-rose-400",
-    },
-  ];
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -154,15 +86,11 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
       // Clear category if branch changes
       ...(name === "branchId" ? { category: "" } : {}),
     }));
-    if (name === "branchId") {
-      setCategories([]);
-    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate required fields
     if (
       !formData.name ||
       !formData.category ||
@@ -175,7 +103,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
       return;
     }
 
-    // Validate price is a number
     if (isNaN(formData.price) || Number(formData.price) <= 0) {
       setError("Please enter a valid price");
       return;
@@ -185,13 +112,12 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
       setLoading(true);
       setError(null);
 
-      // Prepare payload for backend
-      const serviceData = {
+      const servicePayload = {
         name: formData.name,
         category: formData.category,
         gender: formData.gender,
         desc: formData.description,
-        price: Number(formData.price), // Convert to number for backend
+        price: Number(formData.price),
         duration: formData.duration,
         icon: formData.icon,
         gradient: formData.gradient,
@@ -200,17 +126,12 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
       };
 
       if (editingService) {
-        // Update existing service
-        await updateService(editingService.id, serviceData);
+        await updateService(editingService.id, servicePayload);
       } else {
-        // Create new service
-        await createService(serviceData);
+        await createService(servicePayload);
       }
-
-      // Call parent's onSubmit to refresh the list
       onSubmit();
     } catch (err) {
-      console.error("Error saving service:", err);
       setError(
         err.response?.data?.message || err.message || "Failed to save service",
       );
@@ -221,7 +142,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
 
   return (
     <form onSubmit={handleSubmit} className="max-h-[85vh] overflow-y-auto">
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-gradient-to-r from-rose-500 to-pink-500 p-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -231,7 +151,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           <p className="text-white/80 text-sm mt-1">
             {editingService
               ? "Update service details"
-              : "Fill in the details to add a new service"}
+              : "Fill in details to add a new service"}
           </p>
         </div>
         <button
@@ -243,7 +163,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
         </button>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div className="mx-6 mt-6 bg-red-50 border border-red-200 rounded-xl p-4">
           <p className="text-red-600 text-sm flex items-center gap-2">
@@ -253,9 +172,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
         </div>
       )}
 
-      {/* Form Content */}
       <div className="p-6 space-y-6">
-        {/* Basic Information Section */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <i className="ri-information-line text-rose-500"></i>
@@ -263,7 +180,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Service Name */}
             <div className="sm:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Service Name *
@@ -279,7 +195,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               />
             </div>
 
-             {/* Branch */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Branch *
@@ -289,7 +204,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                 value={formData.branchId}
                 onChange={handleChange}
                 required
-                disabled={editingService || user?.role === "receptionist"}
+                disabled={editingService || role === "receptionist"}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
                 <option value="">Select branch</option>
@@ -299,16 +214,8 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                   </option>
                 ))}
               </select>
-              {(editingService || user?.role === "receptionist") && (
-                <p className="text-xs text-gray-500 mt-1">
-                  {user?.role === "receptionist"
-                    ? "Branch is fixed for your account"
-                    : "Branch cannot be changed when editing"}
-                </p>
-              )}
             </div>
 
-            {/* Category */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Category *
@@ -369,7 +276,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               </div>
             </div>
 
-            {/* Gender Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Target Gender *
@@ -381,7 +287,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                 required
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white"
               >
-                {genderOptions.map((g) => (
+                {GENDER_OPTIONS.map((g) => (
                   <option key={g} value={g}>
                     {g}
                   </option>
@@ -389,7 +295,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               </select>
             </div>
 
-            {/* Description */}
             <div className="sm:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Description
@@ -406,7 +311,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           </div>
         </div>
 
-        {/* Pricing & Duration Section */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <i className="ri-money-rupee-circle-line text-rose-500"></i>
@@ -414,7 +318,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Price */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Price (₹) *
@@ -432,7 +335,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               />
             </div>
 
-            {/* Duration */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Duration *
@@ -450,7 +352,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           </div>
         </div>
 
-        {/* Visual Appearance Section */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <i className="ri-palette-line text-rose-500"></i>
@@ -458,13 +359,12 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           </h3>
 
           <div className="grid grid-cols-1 gap-4">
-            {/* Icon Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Icon
               </label>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {iconOptions.map((option) => (
+                {ICON_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -486,13 +386,12 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               </div>
             </div>
 
-            {/* Gradient Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Color Gradient
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {gradientOptions.map((option) => (
+                {GRADIENT_OPTIONS.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -514,7 +413,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
               </div>
             </div>
 
-            {/* Preview */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Preview
@@ -546,7 +444,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
           </div>
         </div>
 
-        {/* Status Section */}
         <div>
           <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <i className="ri-checkbox-circle-line text-rose-500"></i>
@@ -582,7 +479,6 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
         </div>
       </div>
 
-      {/* Footer Actions */}
       <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex flex-col sm:flex-row gap-3 border-t border-gray-200">
         <button
           type="button"

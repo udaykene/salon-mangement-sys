@@ -30,6 +30,8 @@ import ReceptionistDashboard from "./pages/ReceptionistDashboard.jsx";
 import { BranchProvider } from "./context/BranchContext.jsx";
 import { StaffProvider } from "./context/StaffContext.jsx";
 import { AuthProvider } from "./context/AuthContext";
+import { CategoryProvider } from "./context/CategoryContext.jsx";
+import { ServiceProvider } from "./context/ServiceContext.jsx";
 import ReceptionistCheckIn from "./pages/ReceptionistCheckin";
 import ReceptionistWalkIns from "./pages/ReceptionistWalkIns";
 import ReceptionistAppointments from "./pages/ReceptionistAppointments";
@@ -51,101 +53,117 @@ const App = () => {
   return (
     <AuthProvider>
       <BranchProvider>
-        <StaffProvider>
-          <div className="min-h-screen bg-black flex flex-col">
-            {!isAdminRoute && !isReceptionistRoute && <Navbar />}
+        <CategoryProvider>
+          <ServiceProvider>
+            <StaffProvider>
+              <div className="min-h-screen bg-black flex flex-col">
+                {!isAdminRoute && !isReceptionistRoute && <Navbar />}
 
-            <main className="flex-1">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/projects" element={<Projects />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/activity" element={<Activity />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegistrationPage />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/book-appointment" element={<BookAppointment />} />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/services" element={<Services />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/activity" element={<Activity />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegistrationPage />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="/team" element={<Team />} />
+                    <Route
+                      path="/book-appointment"
+                      element={<BookAppointment />}
+                    />
 
-                {/* Admin Routes */}
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/profile" element={<AdminProfile />} />
-                <Route
-                  path="/admin/appointments"
-                  element={<AdminAppointments />}
-                />
-                <Route path="/admin/clients" element={<AdminClients />} />
-                <Route path="/admin/services" element={<AdminServices />} />
-                <Route path="/admin/staff" element={<AdminStaff />} />
-                <Route path="/admin/branches" element={<AdminBranches />} />
-                <Route
-                  path="/admin/revenue-reports"
-                  element={<AdminRevenueReports />}
-                />
-                <Route
-                  path="/admin/receptionist"
-                  element={<AdminReceptionists />}
-                />
-                <Route path="/admin/inbox" element={<AdminNotifications />} />
-                <Route path="/admin/offers" element={<AdminOffers />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/attendance" element={<AdminAttendance />} />
+                    {/* Admin Routes */}
+                    <Route
+                      path="/admin/dashboard"
+                      element={<AdminDashboard />}
+                    />
+                    <Route path="/admin/profile" element={<AdminProfile />} />
+                    <Route
+                      path="/admin/appointments"
+                      element={<AdminAppointments />}
+                    />
+                    <Route path="/admin/clients" element={<AdminClients />} />
+                    <Route path="/admin/services" element={<AdminServices />} />
+                    <Route path="/admin/staff" element={<AdminStaff />} />
+                    <Route path="/admin/branches" element={<AdminBranches />} />
+                    <Route
+                      path="/admin/revenue-reports"
+                      element={<AdminRevenueReports />}
+                    />
+                    <Route
+                      path="/admin/receptionist"
+                      element={<AdminReceptionists />}
+                    />
+                    <Route
+                      path="/admin/inbox"
+                      element={<AdminNotifications />}
+                    />
+                    <Route path="/admin/offers" element={<AdminOffers />} />
+                    <Route path="/admin/settings" element={<AdminSettings />} />
+                    <Route
+                      path="/admin/attendance"
+                      element={<AdminAttendance />}
+                    />
 
-                {/* Receptionist Routes */}
-                <Route
-                  path="/receptionist/dashboard"
-                  element={<ReceptionistDashboard />}
-                />
-                <Route
-                  path="/receptionist/appointments"
-                  element={<ReceptionistAppointments />}
-                />
-                <Route
-                  path="/receptionist/checkin"
-                  element={<ReceptionistCheckIn />}
-                />
-                <Route
-                  path="/receptionist/walkins"
-                  element={<ReceptionistWalkIns />}
-                />
-                <Route
-                  path="/receptionist/clients"
-                  element={<ReceptionistClients />}
-                />
-                <Route
-                  path="/receptionist/services"
-                  element={<ReceptionistServices />}
-                />
-                <Route
-                  path="/receptionist/staff"
-                  element={<ReceptionistStaff />}
-                />
-                <Route
-                  path="/receptionist/notifications"
-                  element={<ReceptionistNotifications />}
-                />
-                <Route
-                  path="/receptionist/inventory"
-                  element={<AdminInventory />}
-                />
-                <Route
-                  path="/receptionist/attendance"
-                  element={<ReceptionistAttendance />}
-                />
+                    {/* Receptionist Routes */}
+                    <Route
+                      path="/receptionist/dashboard"
+                      element={<ReceptionistDashboard />}
+                    />
+                    <Route
+                      path="/receptionist/appointments"
+                      element={<ReceptionistAppointments />}
+                    />
+                    <Route
+                      path="/receptionist/checkin"
+                      element={<ReceptionistCheckIn />}
+                    />
+                    <Route
+                      path="/receptionist/walkins"
+                      element={<ReceptionistWalkIns />}
+                    />
+                    <Route
+                      path="/receptionist/clients"
+                      element={<ReceptionistClients />}
+                    />
+                    <Route
+                      path="/receptionist/services"
+                      element={<ReceptionistServices />}
+                    />
+                    <Route
+                      path="/receptionist/staff"
+                      element={<ReceptionistStaff />}
+                    />
+                    <Route
+                      path="/receptionist/notifications"
+                      element={<ReceptionistNotifications />}
+                    />
+                    <Route
+                      path="/receptionist/inventory"
+                      element={<AdminInventory />}
+                    />
+                    <Route
+                      path="/receptionist/attendance"
+                      element={<ReceptionistAttendance />}
+                    />
 
-                {/* Not Found */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </main>
+                    {/* Not Found */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
 
-            {/* Footer only for NON-admin routes */}
-            {!isAdminRoute && !isReceptionistRoute && <Footer />}
-          </div>
-        </StaffProvider>
+                {/* Footer only for NON-admin routes */}
+                {!isAdminRoute && !isReceptionistRoute && <Footer />}
+              </div>
+            </StaffProvider>
+          </ServiceProvider>
+        </CategoryProvider>
       </BranchProvider>
     </AuthProvider>
   );

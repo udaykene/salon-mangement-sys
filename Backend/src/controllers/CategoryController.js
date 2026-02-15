@@ -58,23 +58,21 @@ export const createCategory = async (req, res) => {
           .json({ success: false, message: "Access denied" });
       }
     } else if (role === "receptionist") {
-      if (req.session.branchId.toString() !== branchId) {
-        return res
-          .status(403)
-          .json({ success: false, message: "Access denied" });
-      }
+      // Force the branchId to be the one from session
+      req.body.branchId = req.session.branchId.toString();
     }
 
-    const category = await Category.create({ branchId, name });
+    const category = await Category.create({
+      branchId: req.body.branchId || branchId,
+      name,
+    });
     res.status(201).json({ success: true, category });
   } catch (error) {
     if (error.code === 11000) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Category already exists in this branch",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Category already exists in this branch",
+      });
     }
     res.status(500).json({ success: false, message: error.message });
   }
@@ -89,12 +87,10 @@ export const deleteCategory = async (req, res) => {
     const role = req.session.role;
 
     if (!ownerId || role !== "admin") {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: "Unauthorized. Admin access required.",
-        });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Admin access required.",
+      });
     }
 
     const category = await Category.findById(id);
