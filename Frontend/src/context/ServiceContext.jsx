@@ -41,6 +41,7 @@ export const ServiceProvider = ({ children }) => {
     clients: service.clients,
     branchId: service.branchId?._id || service.branchId,
     branchName: service.branchId?.name || "",
+    staffIds: service.staffIds || [], // Include staffIds for appointment filtering
   });
 
   const fetchServices = useCallback(async (filters = {}) => {

@@ -143,9 +143,16 @@ export const getAllClients = async (req, res) => {
 
 // Internal function to find or create client during appointment booking
 export const findOrCreateClient = async (clientData) => {
-  let client = await Client.findOne({
+  // Ensure we search within the specific branch if provided
+  const query = {
     $or: [{ email: clientData.email }, { phone: clientData.phone }],
-  });
+  };
+
+  if (clientData.branchId) {
+    query.branchId = clientData.branchId;
+  }
+
+  let client = await Client.findOne(query);
 
   if (!client) {
     client = new Client({

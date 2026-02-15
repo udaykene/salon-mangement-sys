@@ -37,14 +37,17 @@ router.get("/", async (req, res) => {
     // ================= RECEPTIONIST PROFILE =================
     if (role === "receptionist") {
       const staff = await Staff.findById(staffId).select(
-        "name phone email status createdAt allowedTabs",
+        "name phone email status createdAt allowedTabs branchId",
       );
 
       if (!staff) {
         return res.status(404).json({ message: "Staff not found" });
       }
 
-      const branch = await Branch.findById(branchId).select("name");
+      // If branchId is not in session, use the one from staff document
+      const effectiveBranchId = branchId || staff.branchId;
+
+      const branch = await Branch.findById(effectiveBranchId).select("name");
 
       return res.json({
         role: role,
@@ -55,7 +58,7 @@ router.get("/", async (req, res) => {
           isActive: staff.status === "active",
           createdAt: staff.createdAt,
           roleLabel: "Receptionist",
-          branchId: branchId, // Pass the session branchId
+          branchId: effectiveBranchId,
           branchName: branch?.name || null,
           allowedTabs: staff.allowedTabs || [],
         },
@@ -93,13 +96,15 @@ router.put("/salon", async (req, res) => {
       email,
       phone,
       address,
-      currency
+      currency,
     };
 
     await owner.save();
 
-    res.json({ message: "Salon settings updated", salonSettings: owner.salonSettings });
-
+    res.json({
+      message: "Salon settings updated",
+      salonSettings: owner.salonSettings,
+    });
   } catch (err) {
     console.error("Salon settings update error:", err);
     res.status(500).json({ message: "Failed to update settings" });
