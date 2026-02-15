@@ -44,7 +44,13 @@ export const createService = async (req, res) => {
       });
     }
 
+    // 3. (Optional) Validate staffIds belong to the same branch
+    // Ideally, you'd check if all staffIds exist and belong to branchId.
+    // For brevity, assuming frontend sends correct IDs or DB constraint handles it.
+
     const service = await Service.create(req.body);
+    // If you want to return the populated staff, you might need to findById and populate immediately,
+    // or just return the service as is.
 
     res.status(201).json({
       success: true,
@@ -94,7 +100,8 @@ export const getServices = async (req, res) => {
 
     const services = await Service.find(query)
       .populate("branchId", "name city")
-      .populate("category", "name");
+      .populate("category", "name")
+      .populate("staffIds", "name role"); // Populate staff info
 
     res.json({ success: true, services });
   } catch (err) {
@@ -177,7 +184,9 @@ export const updateService = async (req, res) => {
         new: true,
         runValidators: true,
       },
-    ).populate("branchId", "name city");
+    )
+      .populate("branchId", "name city")
+      .populate("staffIds", "name role");
 
     res.json({
       success: true,

@@ -3,6 +3,7 @@ import { useBranch } from "../context/BranchContext";
 import { useAuth } from "../context/AuthContext";
 import { useService } from "../context/ServiceContext";
 import { useCategory } from "../context/CategoryContext";
+import { useStaff } from "../context/StaffContext";
 import {
   GENDER_OPTIONS,
   ICON_OPTIONS,
@@ -14,6 +15,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
   const { user, role } = useAuth();
   const { createService, updateService } = useService();
   const { categories, fetchCategories, createCategory } = useCategory();
+  const { staff: allStaff } = useStaff();
 
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
@@ -31,7 +33,15 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     gradient: "from-rose-500 to-pink-500",
     status: "active",
     branchId: role === "receptionist" ? user?.branchId : "",
+    staffIds: [], // Array of selected staff IDs
   });
+
+  // Filter staff based on selected branch
+  const availableStaff = allStaff.filter(
+    (s) =>
+      s.branchId === formData.branchId &&
+      (s.status === "active" || s.status === "on-leave"),
+  );
 
   // Fetch categories when branch changes
   useEffect(() => {
@@ -54,6 +64,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
         gradient: editingService.gradient || "from-rose-500 to-pink-500",
         status: editingService.status || "active",
         branchId: editingService.branchId || "",
+        staffIds: editingService.staffIds?.map((s) => s._id || s) || [],
       });
     }
   }, [editingService]);
@@ -83,8 +94,8 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      // Clear category if branch changes
-      ...(name === "branchId" ? { category: "" } : {}),
+      // Clear category and staff if branch changes
+      ...(name === "branchId" ? { category: "", staffIds: [] } : {}),
     }));
   };
 
@@ -123,6 +134,7 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
         gradient: formData.gradient,
         status: formData.status,
         branchId: formData.branchId,
+        staffIds: formData.staffIds,
       };
 
       if (editingService) {
@@ -293,6 +305,76 @@ const AddServiceForm = ({ onSubmit, onClose, editingService }) => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Assign Staff
+              </label>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {formData.staffIds.map((staffId) => {
+                    const staffMember = allStaff.find((s) => s._id === staffId);
+                    return (
+                      <div
+                        key={staffId}
+                        className="flex items-center gap-2 px-3 py-1 bg-rose-50 text-rose-700 rounded-lg border border-rose-100"
+                      >
+                        <span className="text-sm font-medium">
+                          {staffMember?.name || "Unknown Staff"}
+                        </span>
+                        <span className="text-xs text-rose-500 bg-white/50 px-1.5 py-0.5 rounded">
+                          {staffMember?.role}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              staffIds: prev.staffIds.filter(
+                                (id) => id !== staffId,
+                              ),
+                            }));
+                          }}
+                          className="hover:text-red-600 transition-colors"
+                        >
+                          <i className="ri-close-line"></i>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <select
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value && !formData.staffIds.includes(value)) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        staffIds: [...prev.staffIds, value],
+                      }));
+                    }
+                    e.target.value = ""; // Reset select
+                  }}
+                  disabled={!formData.branchId || availableStaff.length === 0}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white disabled:bg-gray-100"
+                >
+                  <option value="">
+                    {!formData.branchId
+                      ? "Select a branch first"
+                      : availableStaff.length === 0
+                        ? "No active staff found in this branch"
+                        : "Select staff to assign..."}
+                  </option>
+                  {availableStaff
+                    .filter((s) => !formData.staffIds.includes(s._id))
+                    .map((staff) => (
+                      <option key={staff._id} value={staff._id}>
+                        {staff.name} ({staff.role})
+                      </option>
+                    ))}
+                </select>
+              </div>
             </div>
 
             <div className="sm:col-span-2">

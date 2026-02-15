@@ -129,7 +129,7 @@ export const getAllClients = async (req, res) => {
           createdAt: client.createdAt,
           branchId: client.branchId,
         };
-      })
+      }),
     );
 
     res.status(200).json(clientsWithStats);
@@ -217,7 +217,7 @@ export const updateClient = async (req, res) => {
     const updatedClient = await Client.findByIdAndUpdate(
       id,
       { name, email, phone, location, branchId },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     // Return formatted response

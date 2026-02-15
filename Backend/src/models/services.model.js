@@ -21,6 +21,12 @@ const serviceSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
     },
+    staffIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Staff",
+      },
+    ],
     gender: {
       type: String,
       required: true,

@@ -10,7 +10,10 @@ import {
 } from "../constants/serviceConstants";
 
 const SalonAdminServices = () => {
+  // Consolidated hooks and state
   const { currentBranch } = useBranch();
+  const { branches } = useBranch();
+
   const {
     services,
     loading: servicesLoading,
@@ -19,6 +22,7 @@ const SalonAdminServices = () => {
     toggleServiceStatus,
     deleteService,
   } = useService();
+
   const {
     categories,
     loading: categoriesLoading,
@@ -26,19 +30,54 @@ const SalonAdminServices = () => {
     deleteCategory,
   } = useCategory();
 
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [filterGender, setFilterGender] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  // State variables
   const [showAddForm, setShowAddForm] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(null);
   const [editingService, setEditingService] = useState(null);
 
+  // Filter state
+  const [filters, setFilters] = useState({
+    category: "all",
+    gender: "all",
+    branchId: "",
+    search: "",
+    status: "all",
+  });
+
+  // Initialize branch filter with current branch
   useEffect(() => {
-    if (currentBranch) {
-      fetchServices({ branchId: currentBranch._id });
-      fetchCategories(currentBranch._id);
+    if (currentBranch && !filters.branchId) {
+      // Create a new object to avoid dependency issues with setting state inside effect
+      // We only want to set this ONCE when currentBranch loads and filter is empty
+      setFilters((prev) => {
+        if (prev.branchId !== currentBranch._id) {
+          return { ...prev, branchId: currentBranch._id };
+        }
+        return prev;
+      });
     }
-  }, [currentBranch, fetchServices, fetchCategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentBranch]);
+
+  // Fetch data based on filters
+  useEffect(() => {
+    const apiFilters = {
+      branchId: filters.branchId,
+      category: filters.category !== "all" ? filters.category : undefined,
+      gender: filters.gender !== "all" ? filters.gender : undefined,
+    };
+
+    if (filters.branchId) {
+      fetchServices(apiFilters);
+      fetchCategories(filters.branchId);
+    }
+  }, [
+    fetchServices,
+    fetchCategories,
+    filters.branchId,
+    filters.category,
+    filters.gender,
+  ]);
 
   const handleDeleteCategory = async (catId, catName) => {
     if (
@@ -49,7 +88,7 @@ const SalonAdminServices = () => {
       try {
         await deleteCategory(catId);
         // Refresh services since they might have been deleted on cascade
-        fetchServices({ branchId: currentBranch._id });
+        fetchServices({ branchId: currentBranch?._id });
       } catch (err) {
         alert(err.response?.data?.message || "Failed to delete category");
       }
@@ -74,11 +113,15 @@ const SalonAdminServices = () => {
   const totalClients = services.reduce((s, sv) => s + sv.clients, 0);
 
   const filtered = services.filter((sv) => {
-    const matchCat =
-      filterCategory === "all" || sv.categoryId === filterCategory;
-    const matchGender = filterGender === "all" || sv.gender === filterGender;
-    const matchStatus = filterStatus === "all" || sv.status === filterStatus;
-    return matchCat && matchGender && matchStatus;
+    // Category and Gender are handled by API now, but we can verify client side or handle 'all'
+    // Actually, if API handles it, we might not need to filter client side for those.
+    // However, for smooth UI updates without loading, keeping client filter combined with API is okay
+    // BUT, if we fetch based on filters, the returned `services` should already be filtered.
+    // Let's rely on API for Category/Gender/Branch, and Client for Status (since status might not be in API query for all roles yet, or to allow quick toggle)
+
+    const matchStatus =
+      filters.status === "all" || sv.status === filters.status;
+    return matchStatus;
   });
 
   const handleEdit = (service) => {
@@ -176,6 +219,23 @@ const SalonAdminServices = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-6">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <select
+              value={filters.branchId}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, branchId: e.target.value }))
+              }
+              className="px-4 py-2.5 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none bg-white text-gray-700 font-medium"
+            >
+              <option value="">All Branches</option>
+              {branches.map((branch) => (
+                <option key={branch._id} value={branch._id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex flex-col gap-6">
             <FilterSection
               title="Category"
@@ -187,14 +247,18 @@ const SalonAdminServices = () => {
                   count: counts[c._id] || 0,
                 })),
               ]}
-              activeId={filterCategory}
-              setActiveId={setFilterCategory}
+              activeId={filters.category}
+              setActiveId={(id) =>
+                setFilters((prev) => ({ ...prev, category: id }))
+              }
             />
             <FilterSection
               title="Gender"
               options={genderList.map((g) => ({ id: g, name: g }))}
-              activeId={filterGender}
-              setActiveId={setFilterGender}
+              activeId={filters.gender}
+              setActiveId={(id) =>
+                setFilters((prev) => ({ ...prev, gender: id }))
+              }
             />
             <FilterSection
               title="Status"
@@ -202,8 +266,10 @@ const SalonAdminServices = () => {
                 id: s,
                 name: s,
               }))}
-              activeId={filterStatus}
-              setActiveId={setFilterStatus}
+              activeId={filters.status}
+              setActiveId={(id) =>
+                setFilters((prev) => ({ ...prev, status: id }))
+              }
             />
           </div>
         </div>

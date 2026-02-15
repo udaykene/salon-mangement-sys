@@ -4,6 +4,7 @@ export const validateService = (req, res, next) => {
   const schema = Joi.object({
     name: Joi.string().min(3).max(100).required(),
     category: Joi.string().required(), // Category ObjectId as string
+    staffIds: Joi.array().items(Joi.string()).optional(), // Array of Staff IDs
     gender: Joi.string().valid("Men", "Female", "Unisex").required(),
     desc: Joi.string().allow("").optional(),
     price: Joi.number().positive().required(),

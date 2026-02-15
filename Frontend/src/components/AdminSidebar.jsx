@@ -17,6 +17,7 @@ const AdminSidebar = () => {
       path: "/admin/appointments",
     },
     { title: "Clients", icon: "ri-user-heart-line", path: "/admin/clients" },
+    { title: "Walk-Ins", icon: "ri-user-add-line", path: "/admin/walkins" },
     { title: "Services", icon: "ri-scissors-2-line", path: "/admin/services" },
     { title: "Branches", icon: "ri-store-2-line", path: "/admin/branches" },
     { title: "Staff", icon: "ri-team-line", path: "/admin/staff" },
