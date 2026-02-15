@@ -30,7 +30,7 @@ const AdminProfile = () => {
   const fetchProfileData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/owner/profile", {
+      const response = await fetch("/api/profile", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -39,17 +39,20 @@ const AdminProfile = () => {
       if (!response.ok) throw new Error("Failed to fetch profile");
 
       const data = await response.json();
+      // Access profile object from response
+      const profile = data.profile;
+
       const formattedData = {
-        name: data.name || "",
-        email: data.email || "",
-        phone: data.phone || "",
-        role: "Owner",
+        name: profile.name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+        role: profile.roleLabel || "Owner", // Use roleLabel from backend
         department: "Management",
-        joinDate: new Date(data.createdAt).toLocaleDateString("en-US", {
+        joinDate: profile.createdAt ? new Date(profile.createdAt).toLocaleDateString("en-US", {
           month: "long",
           year: "numeric",
-        }),
-        isActive: data.isActive ?? true,
+        }) : "January 2023",
+        isActive: profile.isActive ?? true,
       };
 
       setProfileData(formattedData);
@@ -71,7 +74,7 @@ const AdminProfile = () => {
 
   const handleSave = async () => {
     try {
-      const response = await fetch("/api/owner/profile", {
+      const response = await fetch("/api/profile/owner", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -81,23 +84,26 @@ const AdminProfile = () => {
           name: profileData.name,
           email: profileData.email,
           phone: profileData.phone,
+          roleTitle: profileData.role,
+          createdAt: profileData.joinDate, // Sending string, backend will try to parse
         }),
       });
 
       if (!response.ok) throw new Error("Failed to update profile");
 
       const updatedData = await response.json();
+
+      // Update local state with returned data
       const formattedData = {
+        ...profileData, // Keep existing fields like role/department
         name: updatedData.name,
         email: updatedData.email,
         phone: updatedData.phone,
-        role: "Owner",
-        department: "Management",
-        joinDate: new Date(updatedData.createdAt).toLocaleDateString("en-US", {
+        role: updatedData.roleTitle || profileData.role,
+        joinDate: updatedData.createdAt ? new Date(updatedData.createdAt).toLocaleDateString("en-US", {
           month: "long",
           year: "numeric",
-        }),
-        isActive: updatedData.isActive,
+        }) : profileData.joinDate,
       };
 
       setProfileData(formattedData);
@@ -221,11 +227,10 @@ const AdminProfile = () => {
 
               {/* Edit Button */}
               <button
-                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border-2 ${
-                  isEditing
-                    ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
-                    : "bg-gradient-to-br from-rose-500 to-pink-500 text-white border-transparent hover:from-rose-600 hover:to-pink-600"
-                }`}
+                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-lg border-2 ${isEditing
+                  ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
+                  : "bg-gradient-to-br from-rose-500 to-pink-500 text-white border-transparent hover:from-rose-600 hover:to-pink-600"
+                  }`}
                 onClick={() => setIsEditing(!isEditing)}
                 aria-label={isEditing ? "Close" : "Edit"}
               >
@@ -309,9 +314,19 @@ const AdminProfile = () => {
                 <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                   Role
                 </label>
-                <p className="text-base font-medium text-gray-900 bg-gray-50 rounded-xl p-3 border border-gray-200">
-                  {profileData.role}
-                </p>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    name="role"
+                    value={profileData.role}
+                    onChange={handleInputChange}
+                    className="rounded-xl border-2 border-gray-200 p-3 text-sm text-gray-900 outline-none transition-all focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                  />
+                ) : (
+                  <p className="text-base font-medium text-gray-900 bg-gray-50 rounded-xl p-3 border border-gray-200">
+                    {profileData.role}
+                  </p>
+                )}
               </div>
 
               {/* Join Date Field */}
@@ -319,9 +334,20 @@ const AdminProfile = () => {
                 <label className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                   Member Since
                 </label>
-                <p className="text-base font-medium text-gray-900 bg-gray-50 rounded-xl p-3 border border-gray-200">
-                  {profileData.joinDate}
-                </p>
+                {isEditing ? (
+                  <input
+                    type="text" // Using text to allow flexible "January 2023" input, though backend expects Date if sent as createdAt
+                    name="joinDate"
+                    value={profileData.joinDate}
+                    onChange={handleInputChange}
+                    placeholder="YYYY-MM-DD or Month Year"
+                    className="rounded-xl border-2 border-gray-200 p-3 text-sm text-gray-900 outline-none transition-all focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10"
+                  />
+                ) : (
+                  <p className="text-base font-medium text-gray-900 bg-gray-50 rounded-xl p-3 border border-gray-200">
+                    {profileData.joinDate}
+                  </p>
+                )}
               </div>
             </div>
 

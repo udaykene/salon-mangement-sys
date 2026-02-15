@@ -44,8 +44,14 @@ import AdminInventory from "./pages/Inventory";
 import AdminAttendance from "./pages/AdminAttendance";
 import ReceptionistAttendance from "./pages/ReceptionistAttendance";
 import BookAppointment from "./pages/BookAppointment";
+<<<<<<< HEAD
 import AdminWalkIn from "./pages/AdminWalkIn";
 import ReceptionistReports from "./pages/ReceptionistReports";
+=======
+import AdminWalkIn from './pages/AdminWalkIn';
+import ReceptionistSettings from "./pages/ReceptionistSettings"; // Import the new page
+
+>>>>>>> 715b73bd3132b0c97b8b867b512e0e3a3710144e
 const App = () => {
   const location = useLocation();
 
@@ -91,7 +97,14 @@ const App = () => {
                       element={<AdminAppointments />}
                     />
                     <Route path="/admin/clients" element={<AdminClients />} />
+<<<<<<< HEAD
                     <Route path="/admin/walkins" element={<AdminWalkIn />} />
+=======
+                    <Route
+                      path="/admin/walkins"
+                      element={<AdminWalkIn />}
+                    />
+>>>>>>> 715b73bd3132b0c97b8b867b512e0e3a3710144e
                     <Route path="/admin/services" element={<AdminServices />} />
                     <Route path="/admin/staff" element={<AdminStaff />} />
                     <Route path="/admin/branches" element={<AdminBranches />} />
@@ -156,8 +169,13 @@ const App = () => {
                       element={<ReceptionistAttendance />}
                     />
                     <Route
+<<<<<<< HEAD
                       path="/receptionist/reports"
                       element={<ReceptionistReports />}
+=======
+                      path="/receptionist/settings"
+                      element={<ReceptionistSettings />}
+>>>>>>> 715b73bd3132b0c97b8b867b512e0e3a3710144e
                     />
 
                     {/* Not Found */}

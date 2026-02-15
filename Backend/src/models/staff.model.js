@@ -26,6 +26,7 @@ const staffSchema = new mongoose.Schema(
       type: String,
       default: "staff",
     },
+    roleTitle: { type: String, default: "Receptionist" },
     specialization: [String], // Form string will be converted to this array
     salary: Number,
     commission: Number,
