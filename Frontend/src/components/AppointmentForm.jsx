@@ -32,6 +32,7 @@ const AppointmentForm = ({
     customerName: "",
     email: "",
     phone: "",
+    location: "",
     category: "", // ID
     service: "", // Service Name (legacy) or ID? formatService uses ID for category but service itself?
     // AdminAppointments.jsx uses service Name in payload usually, but let's check.
@@ -58,6 +59,7 @@ const AppointmentForm = ({
         customerName: initialData.clientName || "",
         email: initialData.email || "",
         phone: initialData.phone || "",
+        location: initialData.location || "",
         category: initialData.type || "", // Category Name or ID? formatted data has 'type' which is name?
         // This is messy. We should try to resolve IDs.
         // For 'create', it's clean. For 'edit', we accept what we have.
@@ -170,6 +172,7 @@ const AppointmentForm = ({
       customerName: client.name,
       email: client.email,
       phone: client.phone,
+      location: client.location || "",
     }));
     setClientSearch(client.name);
     setShowClientList(false);
@@ -247,6 +250,7 @@ const AppointmentForm = ({
                       customerName: "",
                       email: "",
                       phone: "",
+                      location: "",
                       category: "",
                       serviceId: "",
                       serviceName: "",
@@ -357,6 +361,7 @@ const AppointmentForm = ({
                               customerName: "",
                               email: "",
                               phone: "",
+                              location: "",
                             }));
                             setClientSearch("");
                             setShowNewClientForm(false);
@@ -415,6 +420,23 @@ const AppointmentForm = ({
                             }
                             className="w-full px-3 py-2 border rounded-lg"
                             readOnly={!!formData.clientId}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500">
+                            Location
+                          </label>
+                          <input
+                            value={formData.location}
+                            onChange={(e) =>
+                              setFormData((p) => ({
+                                ...p,
+                                location: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border rounded-lg"
+                            readOnly={!!formData.clientId}
+                            placeholder="e.g. New York, Online"
                           />
                         </div>
                       </div>

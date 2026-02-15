@@ -16,6 +16,7 @@ export const createAppointment = async (req, res) => {
       branchId,
       clientId,
       price,
+      location,
     } = req.body;
 
     // Basic validation
@@ -38,6 +39,7 @@ export const createAppointment = async (req, res) => {
         name: customerName,
         email,
         phone,
+        location,
         branchId, // Pass branchId to ensure client is created/found in correct branch
       });
       finalClientId = client._id;

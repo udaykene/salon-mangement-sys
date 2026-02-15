@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from "react";
-import AdminLayout from "../components/AdminLayout";
+import ReceptionistLayout from "../components/ReceptionistLayout";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
-const SalonAdminRevenue = () => {
+const ReceptionistReports = () => {
+  const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Get branchId from user context
+  const branchId = user?.branchId?._id || user?.branchId;
+
   useEffect(() => {
-    fetchReport();
-  }, [selectedPeriod]);
+    if (branchId) {
+      fetchReport();
+    }
+  }, [selectedPeriod, branchId]);
 
   const fetchReport = async () => {
+    if (!branchId) return;
     try {
       setLoading(true);
-      // Admin fetches all branches by default (no branchId param)
       const { data } = await axios.get(
-        `http://localhost:3000/api/reports/summary?period=${selectedPeriod}`,
+        `http://localhost:3000/api/reports/summary?period=${selectedPeriod}&branchId=${branchId}`,
       );
       setReportData(data);
     } catch (error) {
@@ -69,8 +76,6 @@ const SalonAdminRevenue = () => {
         }))
       : [];
 
-  const recentTransactions = reportData?.recentTransactions || [];
-
   const serviceRevenueBreakdown =
     reportData && reportData.serviceRevenue
       ? Object.entries(reportData.serviceRevenue).map(
@@ -96,19 +101,20 @@ const SalonAdminRevenue = () => {
       ? Math.max(...monthlyRevenue.map((m) => m.revenue))
       : 100;
 
+  const recentTransactions = reportData?.recentTransactions || [];
+
   return (
-    <AdminLayout>
+    <ReceptionistLayout>
       {/* Page Body */}
       <main className="bg-white min-h-screen lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-            Revenue Reports
+            Reports & Revenue
           </h1>
-          <p className="text-gray-600">
-            Track and analyze your revenue performance
-          </p>
+          <p className="text-gray-600">Track your branch performance</p>
         </div>
+
         {/* Revenue Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 mb-6">
           {revenueStats.map((stat, i) => (
@@ -306,21 +312,9 @@ const SalonAdminRevenue = () => {
             )}
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
-          <button className="flex items-center justify-center gap-2 px-5 py-2.5 border-2 border-gray-200 bg-white text-gray-700 font-semibold rounded-lg hover:border-rose-500 hover:bg-rose-50 hover:text-rose-600 transition-all">
-            <span className="text-lg">📥</span>
-            Export Report
-          </button>
-          <button className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold rounded-lg shadow-md shadow-rose-500/30 transition-all">
-            <span className="text-lg">📊</span>
-            Generate Report
-          </button>
-        </div>
       </main>
-    </AdminLayout>
+    </ReceptionistLayout>
   );
 };
 
-export default SalonAdminRevenue;
+export default ReceptionistReports;

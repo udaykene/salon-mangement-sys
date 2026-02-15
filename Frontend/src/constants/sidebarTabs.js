@@ -60,6 +60,12 @@ export const SIDEBAR_TABS = [
     icon: "ri-notification-line",
     path: "/receptionist/notifications",
   },
+  {
+    id: "reports",
+    title: "Reports",
+    icon: "ri-bar-chart-groupped-line",
+    path: "/receptionist/reports",
+  },
 ];
 
 // Get all tab IDs

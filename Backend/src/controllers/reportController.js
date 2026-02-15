@@ -3,108 +3,202 @@ import { Client } from "../models/client.model.js";
 import Service from "../models/services.model.js";
 
 export const getReportSummary = async (req, res) => {
-    try {
-        const { period } = req.query; // 'week', 'month', 'year'
+  try {
+    const { period, branchId } = req.query; // 'week', 'month', 'year', 'branchId'
 
-        const now = new Date();
-        let startDate = new Date();
+    const now = new Date();
+    let startDate = new Date();
+    let prevStartDate = new Date();
+    let prevEndDate = new Date(); // End of previous period is start of current (roughly)
 
-        if (period === 'week') {
-            startDate.setDate(now.getDate() - 7);
-        } else if (period === 'month') {
-            startDate.setMonth(now.getMonth() - 1);
-        } else if (period === 'year') {
-            startDate.setFullYear(now.getFullYear() - 1);
-        } else {
-            startDate.setMonth(now.getMonth() - 1); // Default to month
-        }
-
-        // Fetch all appointments in the period
-        // Note: Appointment date is stored as String YYYY-MM-DD, strict comparison might be tricky with timezone
-        // but for now let's assume simple string comparison or fetch all and filter
-        const allAppointments = await Appointment.find();
-
-        const filteredAppointments = allAppointments.filter(app => {
-            const appDate = new Date(app.date);
-            return appDate >= startDate && appDate <= now;
-        });
-
-        // Fetch all services to get prices
-        const services = await Service.find();
-        const servicePriceMap = {};
-        services.forEach(s => {
-            servicePriceMap[s.name] = s.price;
-        });
-
-        // Calculate Revenue, Service Breakdown, and Chart Data
-        let totalRevenue = 0;
-        const serviceRevenue = {}; // { 'Hair': 500, 'Nails': 200 }
-        const chartDataMap = {}; // { '2025-01-01': 500 } (date -> revenue)
-
-        filteredAppointments.forEach(app => {
-            if (app.status !== 'Cancelled') {
-                const price = servicePriceMap[app.service] || 0;
-                totalRevenue += price;
-
-                // Breakdown by Category
-                if (!serviceRevenue[app.category]) {
-                    serviceRevenue[app.category] = 0;
-                }
-                serviceRevenue[app.category] += price;
-
-                // Chart Data Aggregation
-                const appDate = new Date(app.date);
-                let key;
-                if (period === 'year') {
-                    key = appDate.toLocaleString('default', { month: 'short' }); // "Jan"
-                } else {
-                    // For week/month, group by day
-                    key = appDate.getDate(); // 1, 2, 3...
-                }
-
-                chartDataMap[key] = (chartDataMap[key] || 0) + price;
-            }
-        });
-
-        // Format Chart Data
-        let chartData = [];
-        if (period === 'year') {
-            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            chartData = months.map(m => ({
-                label: m,
-                value: chartDataMap[m] || 0
-            }));
-        } else {
-            // For week/month, just show days where we have data or fill gaps (simplified)
-            // Simplified: just passing what we have, frontend can map
-            chartData = Object.keys(chartDataMap).map(k => ({
-                label: k,
-                value: chartDataMap[k]
-            }));
-        }
-
-        // Fetch New Clients in period
-        const newClients = await Client.countDocuments({
-            createdAt: { $gte: startDate, $lte: now }
-        });
-
-        // Calculate Trend (Mocking strictly for demo, real implementation needs previous period comparison)
-        const trend = "+12.5%";
-
-        // Prepare Response
-        const summary = {
-            totalRevenue,
-            totalAppointments: filteredAppointments.length,
-            newClients,
-            serviceRevenue,
-            chartData,
-            period
-        };
-
-        res.status(200).json(summary);
-
-    } catch (error) {
-        console.error("Error generating report:", error);
-        res.status(500).json({ message: "Error generating report" });
+    // Calculate Date Ranges
+    if (period === "week") {
+      startDate.setDate(now.getDate() - 7);
+      prevStartDate.setDate(now.getDate() - 14);
+      prevEndDate.setDate(now.getDate() - 7);
+    } else if (period === "month") {
+      startDate.setMonth(now.getMonth() - 1);
+      prevStartDate.setMonth(now.getMonth() - 2);
+      prevEndDate.setMonth(now.getMonth() - 1);
+    } else if (period === "year") {
+      startDate.setFullYear(now.getFullYear() - 1);
+      prevStartDate.setFullYear(now.getFullYear() - 2);
+      prevEndDate.setFullYear(now.getFullYear() - 1);
+    } else {
+      // Default to month
+      startDate.setMonth(now.getMonth() - 1);
+      prevStartDate.setMonth(now.getMonth() - 2);
+      prevEndDate.setMonth(now.getMonth() - 1);
     }
+
+    // Base Query
+    let query = {};
+    if (branchId) {
+      query.branchId = branchId;
+    }
+
+    // Fetch ALL appointments (filtered by branch)
+    // Optimization: In a real app, strict date filtering in DB query is better than fetching all.
+    // However, keeping current pattern of fetching and filtering in JS for simplicity with existing code structure,
+    // but usually advised to filter in MongoDB.
+    const allAppointments = await Appointment.find(query).sort({
+      createdAt: -1,
+    });
+
+    // Filter for Current Period
+    const currentAppointments = allAppointments.filter((app) => {
+      const appDate = new Date(app.date);
+      return appDate >= startDate && appDate <= now;
+    });
+
+    // Filter for Previous Period (for trends)
+    const prevAppointments = allAppointments.filter((app) => {
+      const appDate = new Date(app.date);
+      return appDate >= prevStartDate && appDate <= prevEndDate;
+    });
+
+    // --- Services Price Map ---
+    const services = await Service.find();
+    const servicePriceMap = {};
+    services.forEach((s) => {
+      servicePriceMap[s.name] = s.price;
+    });
+
+    // --- Calculate Metrics Helper ---
+    const calculateMetrics = (apps) => {
+      let revenue = 0;
+      const serviceRev = {};
+      const chartMap = {};
+
+      apps.forEach((app) => {
+        if (app.status !== "Cancelled") {
+          const price = app.price || servicePriceMap[app.service] || 0;
+          revenue += price;
+
+          // Category Breakdown
+          if (app.category) {
+            serviceRev[app.category] = (serviceRev[app.category] || 0) + price;
+          }
+
+          // Chart Data
+          const appDate = new Date(app.date);
+          let key;
+          if (period === "year") {
+            key = appDate.toLocaleString("default", { month: "short" });
+          } else {
+            key = appDate.getDate();
+          }
+          chartMap[key] = (chartMap[key] || 0) + price;
+        }
+      });
+      return { revenue, serviceRev, chartMap, count: apps.length };
+    };
+
+    const currentMetrics = calculateMetrics(currentAppointments);
+    const prevMetrics = calculateMetrics(prevAppointments);
+
+    // --- Calculate Trends ---
+    const calculateTrend = (current, previous) => {
+      if (previous === 0) return current > 0 ? "+100%" : "0%";
+      const change = ((current - previous) / previous) * 100;
+      return (change >= 0 ? "+" : "") + change.toFixed(1) + "%";
+    };
+
+    const revenueTrend = calculateTrend(
+      currentMetrics.revenue,
+      prevMetrics.revenue,
+    );
+    const countTrend = calculateTrend(currentMetrics.count, prevMetrics.count);
+
+    // --- New Clients ---
+    let clientQuery = { createdAt: { $gte: startDate, $lte: now } };
+    let prevClientQuery = {
+      createdAt: { $gte: prevStartDate, $lte: prevEndDate },
+    };
+    if (branchId) {
+      clientQuery.branchId = branchId;
+      prevClientQuery.branchId = branchId;
+    }
+
+    const newClientsCount = await Client.countDocuments(clientQuery);
+    const prevClientsCount = await Client.countDocuments(prevClientQuery);
+    const clientTrend = calculateTrend(newClientsCount, prevClientsCount);
+
+    // --- Avg Transaction ---
+    const avgTransaction =
+      currentMetrics.count > 0
+        ? Math.round(currentMetrics.revenue / currentMetrics.count)
+        : 0;
+    const prevAvgTransaction =
+      prevMetrics.count > 0
+        ? Math.round(prevMetrics.revenue / prevMetrics.count)
+        : 0;
+    const avgTrend = calculateTrend(avgTransaction, prevAvgTransaction);
+
+    // --- Chart Data Formatting ---
+    let chartData = [];
+    if (period === "year") {
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      chartData = months.map((m) => ({
+        label: m,
+        value: currentMetrics.chartMap[m] || 0,
+      }));
+    } else {
+      chartData = Object.keys(currentMetrics.chartMap).map((k) => ({
+        label: k,
+        value: currentMetrics.chartMap[k],
+      }));
+      // Sort by date (numeric key)
+      chartData.sort((a, b) => parseInt(a.label) - parseInt(b.label));
+    }
+
+    // --- Recent Transactions ---
+    // Take top 5 from all appointments for this branch
+    const recentApts = allAppointments.slice(0, 5).map((app) => ({
+      id: app._id,
+      client: app.customerName,
+      service: app.service,
+      amount: app.price || servicePriceMap[app.service] || 0,
+      date: app.date,
+      status: app.status,
+      type: "Service", // Static for now as usually service payment
+      avatar: app.customerName ? app.customerName.charAt(0).toUpperCase() : "?",
+    }));
+
+    // --- Final Response ---
+    const summary = {
+      totalRevenue: currentMetrics.revenue,
+      totalAppointments: currentMetrics.count,
+      newClients: newClientsCount,
+      avgTransaction,
+      serviceRevenue: currentMetrics.serviceRev,
+      chartData,
+      recentTransactions: recentApts,
+      trends: {
+        revenue: revenueTrend,
+        appointments: countTrend,
+        clients: clientTrend,
+        avg: avgTrend,
+      },
+      period,
+    };
+
+    res.status(200).json(summary);
+  } catch (error) {
+    console.error("Error generating report:", error);
+    res.status(500).json({ message: "Error generating report" });
+  }
 };

@@ -44,7 +44,8 @@ import AdminInventory from "./pages/Inventory";
 import AdminAttendance from "./pages/AdminAttendance";
 import ReceptionistAttendance from "./pages/ReceptionistAttendance";
 import BookAppointment from "./pages/BookAppointment";
-import AdminWalkIn from './pages/AdminWalkIn';
+import AdminWalkIn from "./pages/AdminWalkIn";
+import ReceptionistReports from "./pages/ReceptionistReports";
 const App = () => {
   const location = useLocation();
 
@@ -90,10 +91,7 @@ const App = () => {
                       element={<AdminAppointments />}
                     />
                     <Route path="/admin/clients" element={<AdminClients />} />
-                     <Route
-                      path="/admin/walkins"
-                      element={<AdminWalkIn />}
-                    />
+                    <Route path="/admin/walkins" element={<AdminWalkIn />} />
                     <Route path="/admin/services" element={<AdminServices />} />
                     <Route path="/admin/staff" element={<AdminStaff />} />
                     <Route path="/admin/branches" element={<AdminBranches />} />
@@ -156,6 +154,10 @@ const App = () => {
                     <Route
                       path="/receptionist/attendance"
                       element={<ReceptionistAttendance />}
+                    />
+                    <Route
+                      path="/receptionist/reports"
+                      element={<ReceptionistReports />}
                     />
 
                     {/* Not Found */}
