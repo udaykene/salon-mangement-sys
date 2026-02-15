@@ -1,104 +1,88 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import ReceptionistLayout from "../components/ReceptionistLayout";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 const ReceptionistDashboard = () => {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const [stats, setStats] = useState({
-    todayAppointments: 18,
-    checkedIn: 12,
-    waitingClients: 3,
-    completedToday: 9,
+    todayAppointments: 0,
+    checkedIn: 0,
+    waitingClients: 0,
+    completedToday: 0,
   });
 
-  const [upcomingAppointments] = useState([
-    {
-      id: 1,
-      client: "Sarah Johnson",
-      service: "Hair Styling & Color",
-      time: "10:00 AM",
-      status: "confirmed",
-      stylist: "Emma Williams",
-      phone: "+91 98765 43210",
-    },
-    {
-      id: 2,
-      client: "Michael Brown",
-      service: "Spa Massage",
-      time: "11:30 AM",
-      status: "waiting",
-      stylist: "Lisa Anderson",
-      phone: "+91 98765 43211",
-    },
-    {
-      id: 3,
-      client: "Jessica Davis",
-      service: "Bridal Makeup",
-      time: "02:00 PM",
-      status: "confirmed",
-      stylist: "Maria Garcia",
-      phone: "+91 98765 43212",
-    },
-    {
-      id: 4,
-      client: "David Wilson",
-      service: "Haircut & Beard Trim",
-      time: "03:30 PM",
-      status: "pending",
-      stylist: "John Smith",
-      phone: "+91 98765 43213",
-    },
-  ]);
+  const [recentCheckIns, setRecentCheckIns] = useState([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState([]);
+  const [staffAvailability, setStaffAvailability] = useState([]);
 
-  const [staffAvailability] = useState([
-    {
-      name: "Emma Williams",
-      role: "Hair Stylist",
-      status: "busy",
-      currentClient: "Sarah Johnson",
-      nextAvailable: "11:00 AM",
-    },
-    {
-      name: "Lisa Anderson",
-      role: "Massage Therapist",
-      status: "available",
-      currentClient: null,
-      nextAvailable: "Now",
-    },
-    {
-      name: "Maria Garcia",
-      role: "Makeup Artist",
-      status: "available",
-      currentClient: null,
-      nextAvailable: "Now",
-    },
-    {
-      name: "John Smith",
-      role: "Barber",
-      status: "break",
-      currentClient: null,
-      nextAvailable: "03:00 PM",
-    },
-  ]);
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user || !user.branchId) return;
 
-  const [recentCheckIns] = useState([
-    {
-      id: 1,
-      client: "Sarah Johnson",
-      time: "09:55 AM",
-      service: "Hair Styling",
-    },
-    {
-      id: 2,
-      client: "Emily Roberts",
-      time: "09:30 AM",
-      service: "Manicure",
-    },
-    {
-      id: 3,
-      client: "John Doe",
-      time: "09:15 AM",
-      service: "Haircut",
-    },
-  ]);
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `/api/reports/summary?branchId=${user.branchId}&period=week`
+        );
+        const data = response.data;
+
+        setStats({
+          todayAppointments: data.todayStats?.total || 0,
+          checkedIn: data.todayStats?.checkedIn || 0,
+          waitingClients: data.todayStats?.waiting || 0,
+          completedToday: data.todayStats?.completed || 0
+        });
+
+        // Recent Check-ins (using recent transactions as proxy for now)
+        const formattedCheckIns = (data.recentTransactions || []).map(app => ({
+          id: app.id,
+          client: app.client,
+          service: app.service,
+          time: app.time || "N/A",
+          status: app.status
+        }));
+        setRecentCheckIns(formattedCheckIns);
+
+        // Filter upcoming from today's appointments (Pending/Confirmed and not completed)
+        const formattedUpcoming = (data.recentTransactions || []).filter(app =>
+          app.status !== 'Completed' && app.status !== 'Cancelled'
+        ).slice(0, 4).map(app => ({
+          id: app.id,
+          client: app.client,
+          service: app.service,
+          time: app.time || "N/A",
+          status: app.status?.toLowerCase() || 'pending',
+          stylist: app.stylist || 'Any',
+          phone: "N/A"
+        }));
+        setUpcomingAppointments(formattedUpcoming);
+
+        // Staff Availability
+        const formattedStaff = (data.staffMembers || []).map(staff => ({
+          name: staff.name,
+          role: staff.roleTitle || staff.role,
+          status: staff.status === 'active' ? 'available' : 'busy',
+          currentClient: null,
+          nextAvailable: "Now"
+        }));
+        setStaffAvailability(formattedStaff);
+
+
+      } catch (err) {
+        console.error("Error fetching receptionist dashboard:", err);
+        setError("Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [user]);
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -129,6 +113,16 @@ const ReceptionistDashboard = () => {
         return "bg-gray-100 text-gray-700";
     }
   };
+
+  if (loading && !stats.todayAppointments) {
+    return (
+      <ReceptionistLayout>
+        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+        </main>
+      </ReceptionistLayout>
+    )
+  }
 
   return (
     <ReceptionistLayout>
@@ -242,64 +236,68 @@ const ReceptionistDashboard = () => {
               </div>
             </div>
             <div className="divide-y divide-gray-100">
-              {upcomingAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="p-6 hover:bg-rose-50/30 transition-colors group"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200">
-                        {appointment.client.charAt(0)}
+              {upcomingAppointments.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">No upcoming appointments for today.</div>
+              ) : (
+                upcomingAppointments.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="p-6 hover:bg-rose-50/30 transition-colors group"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200">
+                          {appointment.client ? appointment.client.charAt(0) : '?'}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">
+                            {appointment.client}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            {appointment.service}
+                          </p>
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                            <i className="ri-phone-line"></i>
+                            {appointment.phone}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900">
-                          {appointment.client}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {appointment.service}
-                        </p>
-                        <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                          <i className="ri-phone-line"></i>
-                          {appointment.phone}
-                        </p>
-                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                          appointment.status
+                        )}`}
+                      >
+                        {appointment.status.charAt(0).toUpperCase() +
+                          appointment.status.slice(1)}
+                      </span>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                        appointment.status
-                      )}`}
-                    >
-                      {appointment.status.charAt(0).toUpperCase() +
-                        appointment.status.slice(1)}
-                    </span>
+                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                      <span className="flex items-center gap-1">
+                        <i className="ri-time-line text-rose-500"></i>
+                        {appointment.time}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <i className="ri-scissors-2-line text-rose-500"></i>
+                        {appointment.stylist}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-1">
+                        <i className="ri-login-circle-line"></i>
+                        Check In
+                      </button>
+                      <button className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors flex items-center gap-1">
+                        <i className="ri-phone-line"></i>
+                        Call
+                      </button>
+                      <button className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors flex items-center gap-1">
+                        <i className="ri-edit-line"></i>
+                        Edit
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                    <span className="flex items-center gap-1">
-                      <i className="ri-time-line text-rose-500"></i>
-                      {appointment.time}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <i className="ri-scissors-2-line text-rose-500"></i>
-                      {appointment.stylist}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors flex items-center gap-1">
-                      <i className="ri-login-circle-line"></i>
-                      Check In
-                    </button>
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors flex items-center gap-1">
-                      <i className="ri-phone-line"></i>
-                      Call
-                    </button>
-                    <button className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors flex items-center gap-1">
-                      <i className="ri-edit-line"></i>
-                      Edit
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -313,44 +311,48 @@ const ReceptionistDashboard = () => {
               <p className="text-sm text-gray-600 mt-1">Current status</p>
             </div>
             <div className="p-6 space-y-4">
-              {staffAvailability.map((staff, index) => (
-                <div
-                  key={index}
-                  className="p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-rose-200 transition-all"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200">
-                        {staff.name.charAt(0)}
+              {staffAvailability.length === 0 ? (
+                <div className="text-center text-gray-500">No staff stats available.</div>
+              ) : (
+                staffAvailability.map((staff, index) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-rose-200 transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200">
+                          {staff.name.charAt(0)}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900 text-sm">
+                            {staff.name}
+                          </h3>
+                          <p className="text-xs text-gray-600">{staff.role}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-sm">
-                          {staff.name}
-                        </h3>
-                        <p className="text-xs text-gray-600">{staff.role}</p>
-                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${getStaffStatusColor(
+                          staff.status
+                        )}`}
+                      >
+                        {staff.status.charAt(0).toUpperCase() +
+                          staff.status.slice(1)}
+                      </span>
                     </div>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${getStaffStatusColor(
-                        staff.status
-                      )}`}
-                    >
-                      {staff.status.charAt(0).toUpperCase() +
-                        staff.status.slice(1)}
-                    </span>
-                  </div>
-                  {staff.currentClient && (
-                    <p className="text-xs text-gray-600 mb-1">
-                      <i className="ri-user-line text-rose-500"></i> With:{" "}
-                      {staff.currentClient}
+                    {staff.currentClient && (
+                      <p className="text-xs text-gray-600 mb-1">
+                        <i className="ri-user-line text-rose-500"></i> With:{" "}
+                        {staff.currentClient}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-600">
+                      <i className="ri-time-line text-rose-500"></i> Next
+                      available: {staff.nextAvailable}
                     </p>
-                  )}
-                  <p className="text-xs text-gray-600">
-                    <i className="ri-time-line text-rose-500"></i> Next
-                    available: {staff.nextAvailable}
-                  </p>
-                </div>
-              ))}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

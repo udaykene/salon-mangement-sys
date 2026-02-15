@@ -46,7 +46,7 @@ import ReceptionistAttendance from "./pages/ReceptionistAttendance";
 import BookAppointment from "./pages/BookAppointment";
 import AdminWalkIn from "./pages/AdminWalkIn";
 import ReceptionistReports from "./pages/ReceptionistReports";
-// import ReceptionistSettings from "./pages/ReceptionistSettings"; // Import the new page
+import ReceptionistSettings from "./pages/ReceptionistSettings"; // Import the new page
 
 const App = () => {
   const location = useLocation();
@@ -162,6 +162,10 @@ const App = () => {
                     <Route
                       path="/receptionist/reports"
                       element={<ReceptionistReports />}
+                    />
+                    <Route
+                      path="/receptionist/settings"
+                      element={<ReceptionistSettings />}
                     />
 
                     {/* Not Found */}
