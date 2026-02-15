@@ -63,7 +63,7 @@ const ReceptionistSidebar = () => {
       {/* Profile Section */}
       <div className="p-3 border-t border-gray-200">
         <Link
-          to="/receptionist/settings"
+          to="/receptionist/profile"
           onClick={() => setOpen(false)}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive("/receptionist/settings")
               ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow"
