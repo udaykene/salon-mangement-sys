@@ -45,6 +45,8 @@ import AdminAttendance from "./pages/AdminAttendance";
 import ReceptionistAttendance from "./pages/ReceptionistAttendance";
 import BookAppointment from "./pages/BookAppointment";
 import AdminWalkIn from './pages/AdminWalkIn';
+import ReceptionistSettings from "./pages/ReceptionistSettings"; // Import the new page
+
 const App = () => {
   const location = useLocation();
 
@@ -90,7 +92,7 @@ const App = () => {
                       element={<AdminAppointments />}
                     />
                     <Route path="/admin/clients" element={<AdminClients />} />
-                     <Route
+                    <Route
                       path="/admin/walkins"
                       element={<AdminWalkIn />}
                     />
@@ -156,6 +158,10 @@ const App = () => {
                     <Route
                       path="/receptionist/attendance"
                       element={<ReceptionistAttendance />}
+                    />
+                    <Route
+                      path="/receptionist/settings"
+                      element={<ReceptionistSettings />}
                     />
 
                     {/* Not Found */}

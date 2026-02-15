@@ -89,10 +89,14 @@ router.post("/login/staff", StaffLoginValidation, async (req, res) => {
       });
     }
 
-    // Verify role is receptionist
-    if (staff.role !== "Receptionist") {
+    // DEBUG: Log the role being checked
+    console.log(`Login attempt for ${phone}. Role found: '${staff.role}'`);
+
+    // Verify role is receptionist (case-insensitive)
+    if (!staff.role || staff.role.toLowerCase() !== "receptionist") {
+      console.log("Access denied: Role mismatch");
       return res.status(403).json({
-        message: "Access denied. Only receptionists can login here.",
+        message: `Access denied. Role is '${staff.role}', expected 'Receptionist'.`,
       });
     }
 

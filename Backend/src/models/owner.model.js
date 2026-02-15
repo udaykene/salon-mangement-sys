@@ -19,6 +19,7 @@ const ownerSchema = new mongoose.Schema(
       },
     ],
     isActive: { type: Boolean, default: true },
+    roleTitle: { type: String, default: "Owner" },
     // 🆕 Subscription fields
     subscription: {
       plan: {
