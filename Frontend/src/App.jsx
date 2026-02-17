@@ -40,7 +40,9 @@ import ReceptionistServices from "./pages/ReceptionistServices";
 import ReceptionistStaff from "./pages/ReceptionistStaff";
 import ReceptionistNotifications from "./pages/ReceptionistNotifications";
 import Pricing from "./pages/Pricing.jsx";
-import AdminInventory from "./pages/Inventory";
+import Inventory from "./pages/Inventory";
+import AdminInventory from "./pages/AdminInventory";
+
 import AdminAttendance from "./pages/AdminAttendance";
 import ReceptionistAttendance from "./pages/ReceptionistAttendance";
 import BookAppointment from "./pages/BookAppointment";
@@ -122,6 +124,10 @@ const App = () => {
                       path="/admin/attendance"
                       element={<AdminAttendance />}
                     />
+                    <Route
+                      path="/admin/inventory"
+                      element={<AdminInventory />}
+                    />
 
                     {/* Receptionist Routes */}
                     <Route
@@ -158,8 +164,9 @@ const App = () => {
                     />
                     <Route
                       path="/receptionist/inventory"
-                      element={<AdminInventory />}
+                      element={<Inventory />}
                     />
+
                     <Route
                       path="/receptionist/attendance"
                       element={<ReceptionistAttendance />}

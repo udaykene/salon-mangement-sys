@@ -22,6 +22,11 @@ const AdminSidebar = () => {
     { title: "Branches", icon: "ri-store-2-line", path: "/admin/branches" },
     { title: "Staff", icon: "ri-team-line", path: "/admin/staff" },
     {
+      title: "Inventory",
+      icon: "ri-inbox-archive-line",
+      path: "/admin/inventory",
+    },
+    {
       title: "Attendance",
       icon: "ri-calendar-check-fill",
       path: "/admin/attendance",
@@ -123,7 +128,7 @@ const AdminSidebar = () => {
 
       {/* ===== Desktop Sidebar ===== */}
       <aside className="hidden lg:flex! lg:flex-col fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-50">
-        <SidebarContent />
+        {SidebarContent()}
       </aside>
 
       {/* ===== Mobile Sidebar Drawer ===== */}
@@ -144,7 +149,7 @@ const AdminSidebar = () => {
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
-          <SidebarContent />
+          {SidebarContent()}
         </aside>
       </div>
     </>

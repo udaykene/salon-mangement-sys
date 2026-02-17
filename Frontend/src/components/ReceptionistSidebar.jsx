@@ -47,10 +47,11 @@ const ReceptionistSidebar = () => {
               <Link
                 to={item.path}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(item.path)
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  isActive(item.path)
                     ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow"
                     : "text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                  }`}
+                }`}
               >
                 <i className={`${item.icon} text-xl`} />
                 <span className="font-medium">{item.title}</span>
@@ -65,10 +66,11 @@ const ReceptionistSidebar = () => {
         <Link
           to="/receptionist/profile"
           onClick={() => setOpen(false)}
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive("/receptionist/settings")
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+            isActive("/receptionist/settings")
               ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow"
               : "text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-            }`}
+          }`}
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center">
             <i className="ri-user-line text-white text-sm" />
@@ -100,25 +102,28 @@ const ReceptionistSidebar = () => {
 
       {/* ===== Desktop Sidebar ===== */}
       <aside className="hidden lg:flex! lg:flex-col fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-50">
-        <SidebarContent />
+        {SidebarContent()}
       </aside>
 
       {/* ===== Mobile Sidebar Drawer ===== */}
       <div
-        className={`lg:hidden fixed inset-0 z-50 transition ${open ? "visible" : "invisible"
-          }`}
+        className={`lg:hidden fixed inset-0 z-50 transition ${
+          open ? "visible" : "invisible"
+        }`}
       >
         <div
-          className={`absolute inset-0 bg-black/40 transition-opacity ${open ? "opacity-100" : "opacity-0"
-            }`}
+          className={`absolute inset-0 bg-black/40 transition-opacity ${
+            open ? "opacity-100" : "opacity-0"
+          }`}
           onClick={() => setOpen(false)}
         />
 
         <aside
-          className={`absolute left-0 top-0 h-full w-64 bg-white transform transition-transform ${open ? "translate-x-0" : "-translate-x-full"
-            }`}
+          className={`absolute left-0 top-0 h-full w-64 bg-white transform transition-transform ${
+            open ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
-          <SidebarContent />
+          {SidebarContent()}
         </aside>
       </div>
     </>
