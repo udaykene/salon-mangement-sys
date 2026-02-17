@@ -1,167 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import AdminLayout from "../components/AdminLayout";
+import { useBranch } from "../context/BranchContext";
 
 const AdminWalkIn = () => {
+  const { currentBranch } = useBranch();
   const [stats, setStats] = useState({
-    todayWalkIns: 18,
-    activeNow: 5,
-    waiting: 3,
-    avgWaitTime: 15,
+    todayWalkIns: 0,
+    activeNow: 0,
+    waiting: 0,
+    avgWaitTime: 0,
   });
 
   const [activeTab, setActiveTab] = useState("active");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  const [walkInCustomers] = useState([
-    {
-      id: 1,
-      tokenNumber: "W-001",
-      customerName: "Priya Sharma",
-      phoneNumber: "+91 98765 43210",
-      service: "Hair Styling & Color",
-      preferredStylist: "Emma Williams",
-      checkInTime: "09:30 AM",
-      estimatedDuration: "90 min",
-      status: "in-service",
-      waitTime: 0,
-      notes: "Allergic to certain hair dyes",
-    },
-    {
-      id: 2,
-      tokenNumber: "W-002",
-      customerName: "Amit Patel",
-      phoneNumber: "+91 98123 45678",
-      service: "Haircut & Beard Trim",
-      preferredStylist: "John Smith",
-      checkInTime: "10:00 AM",
-      estimatedDuration: "45 min",
-      status: "in-service",
-      waitTime: 0,
-      notes: "",
-    },
-    {
-      id: 3,
-      tokenNumber: "W-003",
-      customerName: "Neha Gupta",
-      phoneNumber: "+91 97654 32109",
-      service: "Bridal Makeup",
-      preferredStylist: "Maria Garcia",
-      checkInTime: "10:15 AM",
-      estimatedDuration: "120 min",
-      status: "waiting",
-      waitTime: 12,
-      notes: "Wedding at 2 PM today",
-    },
-    {
-      id: 4,
-      tokenNumber: "W-004",
-      customerName: "Rahul Verma",
-      phoneNumber: "+91 96543 21098",
-      service: "Spa Massage",
-      preferredStylist: "Lisa Anderson",
-      checkInTime: "10:30 AM",
-      estimatedDuration: "60 min",
-      status: "waiting",
-      waitTime: 8,
-      notes: "Requested deep tissue massage",
-    },
-    {
-      id: 5,
-      tokenNumber: "W-005",
-      customerName: "Sneha Reddy",
-      phoneNumber: "+91 95432 10987",
-      service: "Nail Art & Manicure",
-      preferredStylist: "Any Available",
-      checkInTime: "10:45 AM",
-      estimatedDuration: "60 min",
-      status: "waiting",
-      waitTime: 3,
-      notes: "",
-    },
-    {
-      id: 6,
-      tokenNumber: "W-006",
-      customerName: "Vikram Singh",
-      phoneNumber: "+91 94321 09876",
-      service: "Hair Spa Treatment",
-      preferredStylist: "Emma Williams",
-      checkInTime: "09:00 AM",
-      estimatedDuration: "75 min",
-      status: "in-service",
-      waitTime: 0,
-      notes: "Regular customer - VIP",
-    },
-    {
-      id: 7,
-      tokenNumber: "W-007",
-      customerName: "Ananya Iyer",
-      phoneNumber: "+91 93210 98765",
-      service: "Facial & Cleanup",
-      preferredStylist: "Maria Garcia",
-      checkInTime: "08:45 AM",
-      estimatedDuration: "90 min",
-      status: "completed",
-      waitTime: 0,
-      notes: "",
-    },
-    {
-      id: 8,
-      tokenNumber: "W-008",
-      customerName: "Karan Malhotra",
-      phoneNumber: "+91 92109 87654",
-      service: "Hair Color",
-      preferredStylist: "John Smith",
-      checkInTime: "08:30 AM",
-      estimatedDuration: "120 min",
-      status: "in-service",
-      waitTime: 0,
-      notes: "Wants dark brown shade",
-    },
-  ]);
-
-  const [availableStylists] = useState([
-    {
-      id: 1,
-      name: "Emma Williams",
-      specialization: "Hair Styling",
-      status: "busy",
-      currentCustomer: "Priya Sharma",
-      availableIn: "45 min",
-    },
-    {
-      id: 2,
-      name: "John Smith",
-      specialization: "Hair & Beard",
-      status: "busy",
-      currentCustomer: "Amit Patel",
-      availableIn: "30 min",
-    },
-    {
-      id: 3,
-      name: "Maria Garcia",
-      specialization: "Makeup & Facial",
-      status: "available",
-      currentCustomer: null,
-      availableIn: "Now",
-    },
-    {
-      id: 4,
-      name: "Lisa Anderson",
-      specialization: "Spa & Massage",
-      status: "available",
-      currentCustomer: null,
-      availableIn: "Now",
-    },
-    {
-      id: 5,
-      name: "Sophie Chen",
-      specialization: "Nail Art",
-      status: "available",
-      currentCustomer: null,
-      availableIn: "Now",
-    },
-  ]);
+  const [walkInCustomers, setWalkInCustomers] = useState([]);
+  const [availableStylists, setAvailableStylists] = useState([]);
 
   const [popularServices] = useState([
     { name: "Haircut & Styling", walkIns: 42, avgTime: "45 min" },
@@ -169,6 +24,64 @@ const AdminWalkIn = () => {
     { name: "Bridal Makeup", walkIns: 15, avgTime: "120 min" },
     { name: "Spa & Massage", walkIns: 35, avgTime: "60 min" },
   ]);
+
+  const fetchWalkInData = useCallback(async () => {
+    if (!currentBranch?._id) return;
+    try {
+      const [aptRes, staffRes] = await Promise.all([
+        axios.get(
+          `http://localhost:3000/api/appointments?branchId=${currentBranch._id}`,
+        ),
+        axios.get(
+          `http://localhost:3000/api/staff?branchId=${currentBranch._id}`,
+        ),
+      ]);
+
+      const walkIns = aptRes.data.filter((a) => a.bookingType === "Walk-in");
+
+      const formattedWalkIns = walkIns.map((a) => ({
+        id: a._id,
+        tokenNumber: "W-" + a._id.toString().slice(-3).toUpperCase(),
+        customerName: a.customerName,
+        phoneNumber: a.phone,
+        service: a.service,
+        preferredStylist: a.staff,
+        checkInTime: a.time,
+        estimatedDuration: "45 min", // Default or calculated
+        status: a.status.toLowerCase(),
+        waitTime: 0,
+        notes: a.notes,
+      }));
+
+      setWalkInCustomers(formattedWalkIns);
+
+      const today = new Date().toISOString().split("T")[0];
+      const todayWalkIns = walkIns.filter((a) => a.date === today);
+
+      setStats({
+        todayWalkIns: todayWalkIns.length,
+        activeNow: walkIns.filter((a) => a.status === "In-Progress").length,
+        waiting: walkIns.filter((a) => a.status === "Confirmed").length, // Confirmed = Waiting in our logic
+        avgWaitTime: 15,
+      });
+
+      const stylists = staffRes.data.map((s) => ({
+        id: s._id,
+        name: s.name,
+        specialization: s.specialization?.join(", ") || "General",
+        status: s.status === "active" ? "available" : "busy",
+        currentCustomer: null,
+        availableIn: "Now",
+      }));
+      setAvailableStylists(stylists);
+    } catch (err) {
+      console.error("Failed to fetch admin walk-in data", err);
+    }
+  }, [currentBranch]);
+
+  useEffect(() => {
+    fetchWalkInData();
+  }, [fetchWalkInData]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -278,7 +191,9 @@ const AdminWalkIn = () => {
             <h3 className="text-gray-600 text-sm font-medium mb-1">
               Active Now
             </h3>
-            <p className="text-3xl font-bold text-gray-900">{stats.activeNow}</p>
+            <p className="text-3xl font-bold text-gray-900">
+              {stats.activeNow}
+            </p>
             <p className="text-xs text-gray-500 mt-2">Currently being served</p>
           </div>
 
@@ -292,9 +207,7 @@ const AdminWalkIn = () => {
                 Waiting
               </span>
             </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              In Queue
-            </h3>
+            <h3 className="text-gray-600 text-sm font-medium mb-1">In Queue</h3>
             <p className="text-3xl font-bold text-gray-900">{stats.waiting}</p>
             <p className="text-xs text-gray-500 mt-2">Customers waiting</p>
           </div>
@@ -330,10 +243,9 @@ const AdminWalkIn = () => {
                   <i className="ri-user-line text-rose-600"></i>
                   Walk-In Customers
                 </h2>
-                <button className="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg font-semibold hover:from-rose-600 hover:to-pink-600 transition-all flex items-center gap-2">
-                  <i className="ri-add-line"></i>
-                  Add Walk-In
-                </button>
+                <div className="bg-rose-100 text-rose-600 px-3 py-1 rounded-lg text-xs font-bold">
+                  View Only Mode
+                </div>
               </div>
 
               {/* Search and Filter */}
@@ -436,7 +348,7 @@ const AdminWalkIn = () => {
                     </div>
                     <span
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${getStatusColor(
-                        customer.status
+                        customer.status,
                       )}`}
                     >
                       <i className={getStatusIcon(customer.status)}></i>
@@ -465,7 +377,9 @@ const AdminWalkIn = () => {
                     </div>
                     {customer.status === "waiting" && (
                       <div className="bg-yellow-50 p-2 rounded-lg">
-                        <p className="text-xs text-yellow-600 mb-1">Wait Time</p>
+                        <p className="text-xs text-yellow-600 mb-1">
+                          Wait Time
+                        </p>
                         <p className="font-bold text-yellow-700 text-sm">
                           {customer.waitTime} min
                         </p>
@@ -483,23 +397,11 @@ const AdminWalkIn = () => {
                   )}
 
                   <div className="flex gap-2">
-                    {customer.status === "waiting" && (
-                      <button className="flex-1 px-3 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-semibold hover:from-blue-600 hover:to-cyan-600 transition-all text-sm flex items-center justify-center gap-2">
-                        <i className="ri-play-line"></i>
-                        Start Service
-                      </button>
-                    )}
-                    {customer.status === "in-service" && (
-                      <button className="flex-1 px-3 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-green-600 hover:to-emerald-600 transition-all text-sm flex items-center justify-center gap-2">
-                        <i className="ri-check-line"></i>
-                        Mark Complete
-                      </button>
-                    )}
-                    <button className="px-3 py-2 bg-white border-2 border-gray-200 text-gray-600 rounded-lg font-semibold hover:border-gray-400 transition-all text-sm">
-                      <i className="ri-edit-line"></i>
-                    </button>
-                    <button className="px-3 py-2 bg-white border-2 border-red-200 text-red-600 rounded-lg font-semibold hover:border-red-400 transition-all text-sm">
-                      <i className="ri-close-line"></i>
+                    <button
+                      disabled
+                      className="flex-1 px-3 py-2 bg-gray-100 text-gray-400 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 cursor-not-allowed"
+                    >
+                      Operation Restricted
                     </button>
                   </div>
                 </div>
@@ -528,7 +430,9 @@ const AdminWalkIn = () => {
                   <i className="ri-team-line text-purple-600"></i>
                   Staff Status
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">Real-time availability</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Real-time availability
+                </p>
               </div>
               <div className="p-6 space-y-4 max-h-[400px] overflow-y-auto">
                 {availableStylists.map((stylist) => (
@@ -552,7 +456,7 @@ const AdminWalkIn = () => {
                       </div>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold border ${getStylistStatusColor(
-                          stylist.status
+                          stylist.status,
                         )}`}
                       >
                         {stylist.status.toUpperCase()}
@@ -621,18 +525,12 @@ const AdminWalkIn = () => {
             {/* Quick Actions */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
               <div className="p-6 space-y-3">
-                <button className="w-full p-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg font-semibold hover:from-rose-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2">
-                  <i className="ri-notification-line"></i>
-                  Call Next
-                </button>
-                <button className="w-full p-3 bg-white border-2 border-purple-200 text-purple-600 rounded-lg font-semibold hover:border-purple-500 hover:bg-purple-50 transition-all flex items-center justify-center gap-2">
-                  <i className="ri-refresh-line"></i>
-                  Refresh Queue
-                </button>
-                <button className="w-full p-3 bg-white border-2 border-blue-200 text-blue-600 rounded-lg font-semibold hover:border-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-                  <i className="ri-printer-line"></i>
-                  Print Tokens
-                </button>
+                <div className="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm font-medium text-gray-600 italic">
+                    Operations like "Call Next" and "Print Token" are managed by
+                    the Receptionist.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

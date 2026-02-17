@@ -1,97 +1,167 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import ReceptionistLayout from "../components/ReceptionistLayout";
+import { useBranch } from "../context/BranchContext";
+import { useService } from "../context/ServiceContext";
 
 const ReceptionistWalkIns = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [walkIns, setWalkIns] = useState([
-    {
-      id: 1,
-      name: "Rachel Green",
-      service: "Hair Trim",
-      time: "10:15 AM",
-      status: "waiting",
-      stylist: "Emma Williams",
-      phone: "+91 98765 00001",
-      avatar: "R",
-    },
-    {
-      id: 2,
-      name: "Monica Geller",
-      service: "Manicure",
-      time: "11:45 AM",
-      status: "in-progress",
-      stylist: "Lisa Anderson",
-      phone: "+91 98765 00002",
-      avatar: "M",
-    },
-    {
-      id: 3,
-      name: "Phoebe Buffay",
-      service: "Facial",
-      time: "01:20 PM",
-      status: "completed",
-      stylist: "Maria Garcia",
-      phone: "+91 98765 00003",
-      avatar: "P",
-    },
-  ]);
+  const { currentBranch } = useBranch();
+  const { services: allServices, fetchServices } = useService();
+
+  const [walkIns, setWalkIns] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [fetchingSlots, setFetchingSlots] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    service: "",
-    stylist: "",
+    serviceId: "",
+    serviceName: "",
+    category: "",
+    staff: "Any",
+    date: new Date().toISOString().split("T")[0],
+    time: "",
   });
 
-  const services = [
-    "Hair Cut",
-    "Hair Styling",
-    "Hair Coloring",
-    "Manicure",
-    "Pedicure",
-    "Facial",
-    "Spa Treatment",
-    "Makeup",
-    "Nail Art",
-  ];
+  const fetchWalkIns = useCallback(async () => {
+    if (!currentBranch?._id) return;
+    try {
+      setLoading(true);
+      const { data } = await axios.get(
+        `http://localhost:3000/api/appointments?branchId=${currentBranch._id}`,
+      );
+      // Filter for walk-ins only
+      const walkInList = data
+        .filter((apt) => apt.bookingType === "Walk-in")
+        .map((apt) => ({
+          id: apt._id,
+          name: apt.customerName,
+          service: apt.service,
+          time: apt.time,
+          status: apt.status.toLowerCase(), // Normalize to frontend status keys
+          stylist: apt.staff,
+          phone: apt.phone,
+          avatar: apt.customerName.charAt(0).toUpperCase(),
+        }));
+      setWalkIns(walkInList);
+    } catch (err) {
+      console.error("Failed to fetch walk-ins", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentBranch?._id]);
 
-  const stylists = [
-    "Emma Williams",
-    "Lisa Anderson",
-    "Maria Garcia",
-    "John Smith",
-  ];
+  const fetchStaff = useCallback(async () => {
+    if (!currentBranch?._id) return;
+    try {
+      const { data } = await axios.get(
+        `http://localhost:3000/api/staff?branchId=${currentBranch._id}`,
+      );
+      setStaffList(data);
+    } catch (err) {
+      console.error("Failed to fetch staff", err);
+    }
+  }, [currentBranch?._id]);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchWalkIns();
+    fetchServices({ branchId: currentBranch?._id });
+    fetchStaff();
+  }, [fetchWalkIns, fetchServices, fetchStaff, currentBranch?._id]);
+
+  useEffect(() => {
+    if (showAddForm && formData.date) {
+      const fetchSlots = async () => {
+        try {
+          setFetchingSlots(true);
+          const { data } = await axios.get(
+            `http://localhost:3000/api/appointments/available-slots?branchId=${currentBranch?._id}&date=${formData.date}&staff=${formData.staff}`,
+          );
+          setAvailableSlots(data);
+        } catch (err) {
+          console.error("Failed to fetch slots", err);
+        } finally {
+          setFetchingSlots(false);
+        }
+      };
+      fetchSlots();
+    }
+  }, [showAddForm, formData.date, formData.staff, currentBranch?._id]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const now = new Date();
-    const time = now.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!formData.time) {
+      alert("Please select an available time slot");
+      return;
+    }
 
-    const newWalkIn = {
-      id: walkIns.length + 1,
-      name: formData.name,
-      service: formData.service,
-      time: time,
-      status: "waiting",
-      stylist: formData.stylist,
-      phone: formData.phone,
-      avatar: formData.name.charAt(0).toUpperCase(),
-    };
+    try {
+      setLoading(true);
+      const selectedService = allServices.find(
+        (s) => s.id === formData.serviceId,
+      );
 
-    setWalkIns([newWalkIn, ...walkIns]);
-    setFormData({ name: "", phone: "", service: "", stylist: "" });
-    setShowAddForm(false);
+      const payload = {
+        customerName: formData.name,
+        phone: formData.phone,
+        email: "walkin@example.com", // Placeholder for required field
+        category: selectedService?.category || "General",
+        service: selectedService?.name || formData.serviceName,
+        staff: formData.staff,
+        date: formData.date,
+        time: formData.time,
+        branchId: currentBranch?._id,
+        bookingType: "Walk-in",
+        status: "Confirmed", // Walk-ins usually skip Pending
+      };
+
+      await axios.post("http://localhost:3000/api/appointments", payload);
+
+      setFormData({
+        name: "",
+        phone: "",
+        serviceId: "",
+        serviceName: "",
+        category: "",
+        staff: "Any",
+        date: new Date().toISOString().split("T")[0],
+        time: "",
+      });
+      setShowAddForm(false);
+      fetchWalkIns();
+      alert("Walk-in client added successfully");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to add walk-in");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setWalkIns((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, status: newStatus } : w))
-    );
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      // Backend status uses Title Case: "Pending", "Confirmed", "Cancelled", "Completed", "In-Progress"
+      const statusMap = {
+        waiting: "Confirmed",
+        "in-progress": "In-Progress",
+        completed: "Completed",
+      };
+
+      const backendStatus = statusMap[newStatus] || newStatus;
+
+      await axios.patch(`http://localhost:3000/api/appointments/${id}/status`, {
+        status: backendStatus,
+      });
+
+      fetchWalkIns();
+    } catch (err) {
+      console.error("Failed to update status", err);
+      alert("Failed to update status");
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -111,7 +181,7 @@ const ReceptionistWalkIns = () => {
     (w) =>
       w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       w.service.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      w.stylist.toLowerCase().includes(searchTerm.toLowerCase())
+      w.stylist.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const counts = walkIns.reduce(
@@ -119,7 +189,7 @@ const ReceptionistWalkIns = () => {
       acc[w.status] = (acc[w.status] || 0) + 1;
       return acc;
     },
-    { waiting: 0, "in-progress": 0, completed: 0 }
+    { waiting: 0, "in-progress": 0, completed: 0 },
   );
 
   return (
@@ -150,9 +220,7 @@ const ReceptionistWalkIns = () => {
             <h3 className="text-gray-600 text-sm font-medium mb-1">
               Total Walk-ins
             </h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {walkIns.length}
-            </p>
+            <p className="text-3xl font-bold text-gray-900">{walkIns.length}</p>
             <p className="text-xs text-gray-500 mt-2">Today's total</p>
           </div>
 
@@ -167,9 +235,7 @@ const ReceptionistWalkIns = () => {
               </span>
             </div>
             <h3 className="text-gray-600 text-sm font-medium mb-1">Waiting</h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {counts.waiting}
-            </p>
+            <p className="text-3xl font-bold text-gray-900">{counts.waiting}</p>
             <p className="text-xs text-gray-500 mt-2">In waiting area</p>
           </div>
 
@@ -286,16 +352,24 @@ const ReceptionistWalkIns = () => {
                   </label>
                   <select
                     required
-                    value={formData.service}
-                    onChange={(e) =>
-                      setFormData({ ...formData, service: e.target.value })
-                    }
+                    value={formData.serviceId}
+                    onChange={(e) => {
+                      const svc = allServices.find(
+                        (s) => s.id === e.target.value,
+                      );
+                      setFormData({
+                        ...formData,
+                        serviceId: e.target.value,
+                        serviceName: svc?.name || "",
+                        category: svc?.category || "",
+                      });
+                    }}
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:bg-white transition-all text-sm"
                   >
                     <option value="">Select a service</option>
-                    {services.map((service) => (
-                      <option key={service} value={service}>
-                        {service}
+                    {allServices.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} (₹{service.price})
                       </option>
                     ))}
                   </select>
@@ -303,20 +377,62 @@ const ReceptionistWalkIns = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Assign Stylist *
+                    Assign Stylist
                   </label>
                   <select
-                    required
-                    value={formData.stylist}
+                    value={formData.staff}
                     onChange={(e) =>
-                      setFormData({ ...formData, stylist: e.target.value })
+                      setFormData({ ...formData, staff: e.target.value })
                     }
                     className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:bg-white transition-all text-sm"
                   >
-                    <option value="">Select a stylist</option>
-                    {stylists.map((stylist) => (
-                      <option key={stylist} value={stylist}>
-                        {stylist}
+                    <option value="Any">Any Available</option>
+                    {staffList.map((staff) => (
+                      <option key={staff._id} value={staff.name}>
+                        {staff.name} ({staff.roleTitle || staff.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={(e) =>
+                      setFormData({ ...formData, date: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:bg-white transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Available Slots *
+                  </label>
+                  <select
+                    required
+                    value={formData.time}
+                    onChange={(e) =>
+                      setFormData({ ...formData, time: e.target.value })
+                    }
+                    disabled={fetchingSlots}
+                    className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-rose-500 focus:bg-white transition-all text-sm disabled:opacity-50"
+                  >
+                    <option value="">
+                      {fetchingSlots ? "Fetching..." : "Select a slot"}
+                    </option>
+                    {availableSlots.map((slot) => (
+                      <option
+                        key={slot.time}
+                        value={slot.time}
+                        disabled={!slot.available}
+                      >
+                        {slot.time} {!slot.available && "(Booked)"}
                       </option>
                     ))}
                   </select>
