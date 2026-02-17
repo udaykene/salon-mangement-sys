@@ -49,6 +49,8 @@ import ReceptionistReports from "./pages/ReceptionistReports";
 
 // import ReceptionistSettings from "./pages/ReceptionistSettings"; // Import the new page
 import ReceptionistProfile from "./pages/ReceptionistProfile";
+import AdminExpenses from "./pages/AdminExpenses";
+import ReceptionistExpenses from "./pages/ReceptionistExpenses";
 
 const App = () => {
   const location = useLocation();
@@ -105,6 +107,7 @@ const App = () => {
                       path="/admin/revenue-reports"
                       element={<AdminRevenueReports />}
                     />
+                    <Route path="/admin/expenses" element={<AdminExpenses />} />
                     <Route
                       path="/admin/receptionist"
                       element={<AdminReceptionists />}
@@ -164,6 +167,10 @@ const App = () => {
                     <Route
                       path="/receptionist/reports"
                       element={<ReceptionistReports />}
+                    />
+                    <Route
+                      path="/receptionist/expenses"
+                      element={<ReceptionistExpenses />}
                     />
                     <Route
                       path="/receptionist/profile"

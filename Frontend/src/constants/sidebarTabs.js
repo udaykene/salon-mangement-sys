@@ -63,8 +63,14 @@ export const SIDEBAR_TABS = [
   {
     id: "reports",
     title: "Reports",
-    icon: "ri-bar-chart-groupped-line",
+    icon: "ri-bar-chart-grouped-line",
     path: "/receptionist/reports",
+  },
+  {
+    id: "expenses",
+    title: "Expenses",
+    icon: "ri-wallet-3-line",
+    path: "/receptionist/expenses",
   },
 ];
 

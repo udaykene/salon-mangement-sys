@@ -5,15 +5,9 @@ import axios from "axios";
 const SalonAdminRevenue = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [reportData, setReportData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchReport();
-  }, [selectedPeriod]);
 
   const fetchReport = async () => {
     try {
-      setLoading(true);
       // Admin fetches all branches by default (no branchId param)
       const { data } = await axios.get(
         `http://localhost:3000/api/reports/summary?period=${selectedPeriod}`,
@@ -21,10 +15,12 @@ const SalonAdminRevenue = () => {
       setReportData(data);
     } catch (error) {
       console.error("Error fetching report:", error);
-    } finally {
-      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchReport();
+  }, [selectedPeriod]);
 
   const revenueStats = [
     {
@@ -52,12 +48,14 @@ const SalonAdminRevenue = () => {
       trendUp: reportData?.trends?.clients?.includes("+") || false,
     },
     {
-      title: "Avg. Transaction",
-      value: reportData ? `$${reportData.avgTransaction}` : "$0",
-      icon: "💳",
-      gradient: "from-purple-500 to-rose-500",
-      trend: reportData?.trends?.avg || "0%",
-      trendUp: reportData?.trends?.avg?.includes("+") || false,
+      title: "Total Expenses",
+      value: reportData
+        ? `₹${reportData.totalExpenses.toLocaleString()}`
+        : "₹0",
+      icon: "💸",
+      gradient: "from-amber-500 to-orange-500",
+      trend: reportData?.trends?.expenses || "0%",
+      trendUp: !(reportData?.trends?.expenses?.includes("+") || false), // Up is bad for expenses
     },
   ];
 

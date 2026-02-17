@@ -55,6 +55,8 @@ const staffSchema = new mongoose.Schema(
         "services",
         "staff-availability",
         "notifications",
+        "reports",
+        "expenses",
       ],
     },
   },

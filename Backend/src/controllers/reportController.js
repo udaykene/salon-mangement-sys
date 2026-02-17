@@ -2,6 +2,7 @@ import { Appointment } from "../models/Appointment.js";
 import { Client } from "../models/client.model.js";
 import Service from "../models/services.model.js";
 import Staff from "../models/staff.model.js";
+import Expense from "../models/expense.model.js";
 
 export const getReportSummary = async (req, res) => {
   try {
@@ -39,23 +40,37 @@ export const getReportSummary = async (req, res) => {
     }
 
     // Fetch ALL appointments (filtered by branch)
-    // Optimization: In a real app, strict date filtering in DB query is better than fetching all.
-    // However, keeping current pattern of fetching and filtering in JS for simplicity with existing code structure,
-    // but usually advised to filter in MongoDB.
     const allAppointments = await Appointment.find(query).sort({
       createdAt: -1,
     });
 
-    // Filter for Current Period
+    // Fetch ALL expenses (filtered by branch)
+    const allExpenses = await Expense.find(query).sort({
+      date: -1,
+    });
+
+    // Filter appointments for Current Period
     const currentAppointments = allAppointments.filter((app) => {
       const appDate = new Date(app.date);
       return appDate >= startDate && appDate <= now;
     });
 
-    // Filter for Previous Period (for trends)
+    // Filter appointments for Previous Period (for trends)
     const prevAppointments = allAppointments.filter((app) => {
       const appDate = new Date(app.date);
       return appDate >= prevStartDate && appDate <= prevEndDate;
+    });
+
+    // Filter expenses for Current Period
+    const currentExpenses = allExpenses.filter((exp) => {
+      const expDate = new Date(exp.date);
+      return expDate >= startDate && expDate <= now;
+    });
+
+    // Filter expenses for Previous Period
+    const prevExpenses = allExpenses.filter((exp) => {
+      const expDate = new Date(exp.date);
+      return expDate >= prevStartDate && expDate <= prevEndDate;
     });
 
     // --- Services Price Map ---
@@ -98,6 +113,21 @@ export const getReportSummary = async (req, res) => {
     const currentMetrics = calculateMetrics(currentAppointments);
     const prevMetrics = calculateMetrics(prevAppointments);
 
+    // --- Calculate Expenses ---
+    const calculateExpenseMetrics = (expenses) => {
+      let total = 0;
+      const categoryBreakdown = {};
+      expenses.forEach((exp) => {
+        total += exp.amount;
+        categoryBreakdown[exp.category] =
+          (categoryBreakdown[exp.category] || 0) + exp.amount;
+      });
+      return { total, categoryBreakdown };
+    };
+
+    const currentExpenseMetrics = calculateExpenseMetrics(currentExpenses);
+    const prevExpenseMetrics = calculateExpenseMetrics(prevExpenses);
+
     // --- Calculate Trends ---
     const calculateTrend = (current, previous) => {
       if (previous === 0) return current > 0 ? "+100%" : "0%";
@@ -110,6 +140,10 @@ export const getReportSummary = async (req, res) => {
       prevMetrics.revenue,
     );
     const countTrend = calculateTrend(currentMetrics.count, prevMetrics.count);
+    const expenseTrend = calculateTrend(
+      currentExpenseMetrics.total,
+      prevExpenseMetrics.total,
+    );
 
     // --- New Clients ---
     let clientQuery = { createdAt: { $gte: startDate, $lte: now } };
@@ -187,39 +221,52 @@ export const getReportSummary = async (req, res) => {
     const todayString = today.toISOString().split("T")[0]; // YYYY-MM-DD
 
     const todayAppointments = allAppointments.filter(
-      (app) => app.date === todayString
+      (app) => app.date === todayString,
     );
 
     const todayStats = {
       total: todayAppointments.length,
-      confirmed: todayAppointments.filter((app) => app.status === "Confirmed").length,
-      pending: todayAppointments.filter((app) => app.status === "Pending").length,
-      completed: todayAppointments.filter((app) => app.status === "Completed").length,
-      cancelled: todayAppointments.filter((app) => app.status === "Cancelled").length,
-      checkedIn: todayAppointments.filter((app) => app.status === "Checked In").length, // Assuming 'Checked In' status exists or mapped
-      waiting: todayAppointments.filter((app) => app.status === "Waiting").length, // Assuming 'Waiting' status exists
+      confirmed: todayAppointments.filter((app) => app.status === "Confirmed")
+        .length,
+      pending: todayAppointments.filter((app) => app.status === "Pending")
+        .length,
+      completed: todayAppointments.filter((app) => app.status === "Completed")
+        .length,
+      cancelled: todayAppointments.filter((app) => app.status === "Cancelled")
+        .length,
+      checkedIn: todayAppointments.filter((app) => app.status === "Checked In")
+        .length, // Assuming 'Checked In' status exists or mapped
+      waiting: todayAppointments.filter((app) => app.status === "Waiting")
+        .length, // Assuming 'Waiting' status exists
     };
 
     // Active Staff Count
     const activeStaffCount = await Staff.countDocuments({
       branchId: branchId,
-      status: "active"
+      status: "active",
     });
 
-    const staffMembers = await Staff.find({ branchId }).select("name role status"); // Fetch simple list
+    const staffMembers = await Staff.find({ branchId }).select(
+      "name role status",
+    ); // Fetch simple list
 
     // Total Active Clients (All time for branch)
-    const activeClientsCount = await Client.countDocuments(branchId ? { branchId } : {});
+    const activeClientsCount = await Client.countDocuments(
+      branchId ? { branchId } : {},
+    );
 
     // --- Final Response ---
     const summary = {
       totalRevenue: currentMetrics.revenue,
+      totalExpenses: currentExpenseMetrics.total,
+      netRevenue: currentMetrics.revenue - currentExpenseMetrics.total,
       totalAppointments: currentMetrics.count,
       newClients: newClientsCount,
       activeClients: activeClientsCount,
       activeStaff: activeStaffCount,
       avgTransaction,
       serviceRevenue: currentMetrics.serviceRev,
+      expenseBreakdown: currentExpenseMetrics.categoryBreakdown,
       chartData,
       recentTransactions: recentApts,
       todayStats, // NEW: For Dashboard cards
@@ -229,6 +276,7 @@ export const getReportSummary = async (req, res) => {
         appointments: countTrend,
         clients: clientTrend,
         avg: avgTrend,
+        expenses: expenseTrend,
       },
       period,
     };

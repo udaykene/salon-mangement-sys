@@ -21,13 +21,22 @@ const AdminSidebar = () => {
     { title: "Services", icon: "ri-scissors-2-line", path: "/admin/services" },
     { title: "Branches", icon: "ri-store-2-line", path: "/admin/branches" },
     { title: "Staff", icon: "ri-team-line", path: "/admin/staff" },
-    { title: "Attendance", icon: "ri-calendar-check-fill", path: "/admin/attendance" },
+    {
+      title: "Attendance",
+      icon: "ri-calendar-check-fill",
+      path: "/admin/attendance",
+    },
     { title: "Offers", icon: "ri-gift-line", path: "/admin/offers" },
     { title: "Inbox", icon: "ri-mail-line", path: "/admin/inbox" },
     {
       title: "Revenue Reports",
       icon: "ri-line-chart-line",
-      path: "/admin/revenue-reports"
+      path: "/admin/revenue-reports",
+    },
+    {
+      title: "Expenses",
+      icon: "ri-wallet-3-line",
+      path: "/admin/expenses",
     },
     { title: "Settings", icon: "ri-settings-3-line", path: "/admin/settings" },
   ];
@@ -59,10 +68,11 @@ const AdminSidebar = () => {
               <Link
                 to={item.path}
                 onClick={() => setOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(item.path)
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  isActive(item.path)
                     ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow"
                     : "text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-                  }`}
+                }`}
               >
                 <i className={`${item.icon} text-xl`} />
                 <span className="font-medium">{item.title}</span>
@@ -77,10 +87,11 @@ const AdminSidebar = () => {
         <Link
           to="/admin/profile"
           onClick={() => setOpen(false)}
-          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive("/admin/profile")
+          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+            isActive("/admin/profile")
               ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow"
               : "text-gray-700 hover:bg-rose-50 hover:text-rose-600"
-            }`}
+          }`}
         >
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-400 flex items-center justify-center">
             <i className="ri-user-line text-white text-sm" />
@@ -117,18 +128,21 @@ const AdminSidebar = () => {
 
       {/* ===== Mobile Sidebar Drawer ===== */}
       <div
-        className={`lg:hidden fixed inset-0 z-50 transition ${open ? "visible" : "invisible"
-          }`}
+        className={`lg:hidden fixed inset-0 z-50 transition ${
+          open ? "visible" : "invisible"
+        }`}
       >
         <div
-          className={`absolute inset-0 bg-black/40 transition-opacity ${open ? "opacity-100" : "opacity-0"
-            }`}
+          className={`absolute inset-0 bg-black/40 transition-opacity ${
+            open ? "opacity-100" : "opacity-0"
+          }`}
           onClick={() => setOpen(false)}
         />
 
         <aside
-          className={`absolute left-0 top-0 h-full w-64 bg-white transform transition-transform ${open ? "translate-x-0" : "-translate-x-full"
-            }`}
+          className={`absolute left-0 top-0 h-full w-64 bg-white transform transition-transform ${
+            open ? "translate-x-0" : "-translate-x-full"
+          }`}
         >
           <SidebarContent />
         </aside>

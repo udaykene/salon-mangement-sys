@@ -16,6 +16,7 @@ import AttendanceRouter from "./src/routes/AttendanceRouter.js";
 import AppointmentRouter from "./src/routes/AppointmentRouter.js";
 import ClientRouter from "./src/routes/clientRoutes.js";
 import ReportRouter from "./src/routes/reportRoutes.js";
+import ExpenseRouter from "./src/routes/expenseRoutes.js";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -62,6 +63,7 @@ app.use("/api/attendance", AttendanceRouter);
 app.use("/api/appointments", AppointmentRouter);
 app.use("/api/clients", ClientRouter);
 app.use("/api/reports", ReportRouter);
+app.use("/api/expenses", ExpenseRouter);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");
