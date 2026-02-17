@@ -8,6 +8,7 @@ const AdminExpenses = () => {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState("all");
   const [formData, setFormData] = useState({
     category: "",
     amount: "",
@@ -117,6 +118,28 @@ const AdminExpenses = () => {
           </button>
         </div>
 
+        {/* Branch Filter & Stats */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="w-full sm:w-64">
+            <div className="relative">
+              <i className="ri-store-2-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none cursor-pointer"
+              >
+                <option value="all">All Branches</option>
+                {branches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
+              <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+            </div>
+          </div>
+        </div>
+
         {/* Expenses Table */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
@@ -155,39 +178,45 @@ const AdminExpenses = () => {
                       </tr>
                     ))
                 ) : expenses.length > 0 ? (
-                  expenses.map((expense) => (
-                    <tr
-                      key={expense._id}
-                      className="hover:bg-gray-50 transition-colors group"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {expense.date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100 capitalize">
-                          {expense.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                        ₹{expense.amount.toLocaleString()}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {branches.find((b) => b._id === expense.branchId)
-                          ?.name || "Unknown"}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                        {expense.description || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                        <button
-                          onClick={() => handleDelete(expense._id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors p-2"
-                        >
-                          <i className="ri-delete-bin-line text-lg"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  expenses
+                    .filter(
+                      (expense) =>
+                        selectedBranch === "all" ||
+                        expense.branchId === selectedBranch,
+                    )
+                    .map((expense) => (
+                      <tr
+                        key={expense._id}
+                        className="hover:bg-gray-50 transition-colors group"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {expense.date}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-600 border border-rose-100 capitalize">
+                            {expense.category}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                          ₹{expense.amount.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {branches.find((b) => b._id === expense.branchId)
+                            ?.name || "Unknown"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                          {expense.description || "-"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                          <button
+                            onClick={() => handleDelete(expense._id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                          >
+                            <i className="ri-delete-bin-line text-lg"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
                     <td

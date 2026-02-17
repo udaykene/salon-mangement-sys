@@ -4,7 +4,7 @@ import { useBranch } from "../context/BranchContext";
 import axios from "axios";
 
 const AdminInventory = () => {
-  const { currentBranch } = useBranch();
+  const { currentBranch, branches, switchBranch } = useBranch();
   const [inventoryItems, setInventoryItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -115,11 +115,33 @@ const AdminInventory = () => {
             Inventory Oversight
           </h1>
           <p className="text-gray-600">
-            Monitoring stock levels for{" "}
+            monitoring stock levels for{" "}
             <span className="font-semibold text-rose-600">
               {currentBranch?.name}
             </span>
           </p>
+        </div>
+
+        {/* Branch Selector */}
+        <div className="w-full sm:w-64 mb-8">
+          <div className="relative">
+            <i className="ri-store-2-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <select
+              value={currentBranch?._id || ""}
+              onChange={(e) => {
+                const branch = branches.find(b => b._id === e.target.value);
+                if (branch) switchBranch(branch);
+              }}
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none appearance-none cursor-pointer"
+            >
+              {branches.map((branch) => (
+                <option key={branch._id} value={branch._id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+            <i className="ri-arrow-down-s-line absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+          </div>
         </div>
 
         {error && (
@@ -212,11 +234,10 @@ const AdminInventory = () => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-1.5 rounded-lg font-semibold text-xs transition-all ${
-                      activeTab === tab
-                        ? "bg-rose-500 text-white shadow-sm"
-                        : "text-gray-600 hover:bg-rose-50"
-                    }`}
+                    className={`px-4 py-1.5 rounded-lg font-semibold text-xs transition-all ${activeTab === tab
+                      ? "bg-rose-500 text-white shadow-sm"
+                      : "text-gray-600 hover:bg-rose-50"
+                      }`}
                   >
                     {tab.toUpperCase()}
                   </button>
