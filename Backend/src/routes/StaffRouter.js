@@ -2,6 +2,120 @@ import express from "express";
 const router = express.Router();
 import Staff from "../models/staff.model.js"; // Adjust path to your model
 import Branch from "../models/branch.model.js";
+import { Appointment } from "../models/Appointment.js";
+import Service from "../models/services.model.js";
+
+// GET: Fetch all staff with availability status
+router.get("/availability", async (req, res) => {
+  try {
+    const ownerId = req.session.ownerId;
+    if (!ownerId) {
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    const { branchId, date, time } = req.query;
+    // Default to current date/time if not provided
+    const checkDate = date ? new Date(date) : new Date();
+    const checkTimeStr = time || checkDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+    // Helper to parse "HH:MM AM/PM" to minutes from midnight
+    const parseTime = (timeStr) => {
+      const [time, modifier] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':');
+      if (hours === '12') hours = '00';
+      if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+      return parseInt(hours, 10) * 60 + parseInt(minutes, 10);
+    };
+
+    // Helper to parse duration string "45 min" -> 45
+    const parseDuration = (durStr) => {
+      if (!durStr) return 30; // Default
+      const matches = durStr.match(/(\d+)/);
+      return matches ? parseInt(matches[0], 10) : 30;
+    };
+
+    let query = { ownerId };
+    if (branchId) query.branchId = branchId;
+
+    const [staffMembers, appointments, services] = await Promise.all([
+      Staff.find(query),
+      Appointment.find({
+        branchId,
+        date: checkDate.toISOString().split('T')[0], // Assuming date is stored as YYYY-MM-DD
+        status: { $nin: ["Cancelled", "Completed"] }
+      }),
+      Service.find({ branchId }) // Need services to get durations
+    ]);
+
+    // Create a map of service duration
+    const serviceDurations = services.reduce((acc, curr) => {
+      acc[curr.name] = parseDuration(curr.duration);
+      return acc;
+    }, {});
+
+    const currentMinutes = parseTime(checkTimeStr);
+    const dayName = checkDate.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+
+    const staffWithStatus = staffMembers.map(staff => {
+      // 1. Check Working Days
+      if (!staff.workingDays || !staff.workingDays.includes(dayName)) {
+        return { ...staff.toObject(), currentStatus: "off-duty", nextAvailable: "Next Working Day" };
+      }
+
+      // 2. Check Working Hours
+      if (staff.workingHours && staff.workingHours.start && staff.workingHours.end) {
+        const startMin = parseTime(staff.workingHours.start);
+        const endMin = parseTime(staff.workingHours.end);
+        if (currentMinutes < startMin || currentMinutes > endMin) {
+          return { ...staff.toObject(), currentStatus: "off-duty", nextAvailable: staff.workingHours.start };
+        }
+      }
+
+      // 3. Check Appointments
+      const staffApps = appointments.filter(app => {
+        // Handle "Any" or specific staff match
+        // Assuming app.staff stores ID or Name. Ideally ID.
+        // If app.staff is name, we compare names. If ID, compare IDs.
+        return app.staff === staff._id.toString() || app.staff === staff.name;
+      });
+
+      const busyApp = staffApps.find(app => {
+        const appStart = parseTime(app.time);
+        const duration = serviceDurations[app.service] || 30; // fallback 30 mins
+        const appEnd = appStart + duration;
+        return currentMinutes >= appStart && currentMinutes < appEnd;
+      });
+
+      if (busyApp) {
+        const appStart = parseTime(busyApp.time);
+        const duration = serviceDurations[busyApp.service] || 30;
+        const appEnd = appStart + duration;
+
+        // Convert appEnd back to time string for nextAvailable
+        const endH = Math.floor(appEnd / 60);
+        const endM = appEnd % 60;
+        const ampm = endH >= 12 ? 'PM' : 'AM';
+        const formattedH = endH % 12 || 12;
+        const formattedTime = `${formattedH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')} ${ampm}`;
+
+        return {
+          ...staff.toObject(),
+          currentStatus: "busy",
+          currentClient: busyApp.customerName,
+          nextAvailable: formattedTime
+        };
+      }
+
+      return { ...staff.toObject(), currentStatus: "available", nextAvailable: "Now" };
+    });
+
+    res.json(staffWithStatus);
+
+  } catch (err) {
+    console.error("Error fetching staff availability:", err);
+    res.status(500).json({ message: err.message || "Error fetching availability" });
+  }
+});
 
 // GET: Fetch all staff for the logged-in owner
 router.get("/", async (req, res) => {

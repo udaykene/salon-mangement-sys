@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 import ReceptionistLayout from "../components/ReceptionistLayout";
 
 const ReceptionistStaff = () => {
@@ -8,92 +10,69 @@ const ReceptionistStaff = () => {
 
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-  const [staff] = useState([
-    {
-      id: 1,
-      name: "Emma Williams",
-      role: "Hair Stylist",
-      specialization: ["Cutting", "Coloring", "Styling"],
-      status: "available",
-      currentClient: null,
-      nextAvailable: "Now",
-      workingHours: { start: "09:00 AM", end: "06:00 PM" },
-      workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-      phone: "+91 98765 00001",
-      avatar: "E",
-      gradient: "from-rose-500 to-pink-500",
-    },
-    {
-      id: 2,
-      name: "Lisa Anderson",
-      role: "Massage Therapist",
-      specialization: ["Swedish Massage", "Deep Tissue", "Aromatherapy"],
-      status: "busy",
-      currentClient: "Sarah Johnson",
-      nextAvailable: "02:00 PM",
-      workingHours: { start: "10:00 AM", end: "07:00 PM" },
-      workingDays: ["Mon", "Wed", "Fri", "Sat"],
-      phone: "+91 98765 00002",
-      avatar: "L",
-      gradient: "from-pink-500 to-fuchsia-500",
-    },
-    {
-      id: 3,
-      name: "Maria Garcia",
-      role: "Makeup Artist",
-      specialization: ["Bridal Makeup", "Party Makeup", "Airbrush"],
-      status: "available",
-      currentClient: null,
-      nextAvailable: "Now",
-      workingHours: { start: "09:00 AM", end: "05:00 PM" },
-      workingDays: ["Tue", "Wed", "Thu", "Fri", "Sat"],
-      phone: "+91 98765 00003",
-      avatar: "M",
-      gradient: "from-purple-500 to-pink-500",
-    },
-    {
-      id: 4,
-      name: "John Smith",
-      role: "Barber",
-      specialization: ["Men's Haircut", "Beard Trim", "Hot Towel Shave"],
-      status: "on-break",
-      currentClient: null,
-      nextAvailable: "01:30 PM",
-      workingHours: { start: "09:00 AM", end: "06:00 PM" },
-      workingDays: ["Mon", "Tue", "Thu", "Fri", "Sat"],
-      phone: "+91 98765 00004",
-      avatar: "J",
-      gradient: "from-blue-500 to-cyan-500",
-    },
-    {
-      id: 5,
-      name: "Sophie Chen",
-      role: "Nail Technician",
-      specialization: ["Manicure", "Pedicure", "Nail Art"],
-      status: "busy",
-      currentClient: "Emily Davis",
-      nextAvailable: "03:15 PM",
-      workingHours: { start: "10:00 AM", end: "07:00 PM" },
-      workingDays: ["Wed", "Thu", "Fri", "Sat", "Sun"],
-      phone: "+91 98765 00005",
-      avatar: "S",
-      gradient: "from-rose-400 to-pink-400",
-    },
-    {
-      id: 6,
-      name: "Raj Kumar",
-      role: "Spa Therapist",
-      specialization: ["Facial", "Body Scrub", "Spa Treatments"],
-      status: "off-duty",
-      currentClient: null,
-      nextAvailable: "Tomorrow 10:00 AM",
-      workingHours: { start: "10:00 AM", end: "06:00 PM" },
-      workingDays: ["Mon", "Tue", "Wed", "Thu"],
-      phone: "+91 98765 00006",
-      avatar: "R",
-      gradient: "from-pink-400 to-fuchsia-400",
-    },
-  ]);
+  const { user } = useAuth();
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Helper to generate consistent avatar for staff (since backend might not have it)
+  const getAvatar = (name) => name ? name.charAt(0).toUpperCase() : "?";
+
+  // Helper to get consistent gradient based on name length or char code
+  const getGradient = (name) => {
+    const gradients = [
+      "from-rose-500 to-pink-500",
+      "from-purple-500 to-pink-500",
+      "from-blue-500 to-cyan-500",
+      "from-green-500 to-emerald-500",
+      "from-pink-500 to-fuchsia-500",
+      "from-orange-500 to-red-500"
+    ];
+    if (!name) return gradients[0];
+    const index = name.charCodeAt(0) % gradients.length;
+    return gradients[index];
+  };
+
+  useEffect(() => {
+    const fetchStaffAvailability = async () => {
+      try {
+        setLoading(true);
+        // Assuming user.branchId is available in context. 
+        // If user is receptionist, they belong to a branch.
+        const branchId = user?.branchId;
+
+        let url = "/api/staff/availability";
+        if (branchId) {
+          url += `?branchId=${branchId}`;
+        }
+
+        const res = await axios.get(url, { withCredentials: true });
+
+        // Transform data to match UI requirements if necessary
+        const mappedStaff = res.data.map(s => ({
+          ...s,
+          id: s._id, // Map _id to id
+          role: s.roleTitle || s.role, // Use roleTitle if available
+          status: s.currentStatus || "available", // Default
+          avatar: getAvatar(s.name),
+          gradient: getGradient(s.name)
+        }));
+
+        setStaff(mappedStaff);
+      } catch (err) {
+        console.error("Error fetching staff:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchStaffAvailability();
+
+      // Optional: Poll every minute for real-time updates
+      const interval = setInterval(fetchStaffAvailability, 60000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const roles = [
     "all",
@@ -260,11 +239,10 @@ const ReceptionistStaff = () => {
                     <button
                       key={s}
                       onClick={() => setFilterStatus(s)}
-                      className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all capitalize ${
-                        filterStatus === s
-                          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
-                      }`}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all capitalize ${filterStatus === s
+                        ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white border-transparent shadow-lg shadow-rose-500/30"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-rose-300 hover:bg-rose-50"
+                        }`}
                     >
                       {s === "on-break" ? "On Break" : s}
                     </button>
@@ -426,11 +404,10 @@ const ReceptionistStaff = () => {
                       {weekDays.map((day) => (
                         <span
                           key={day}
-                          className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
-                            member.workingDays.includes(day)
-                              ? "bg-gray-900 text-white"
-                              : "bg-gray-100 text-gray-400"
-                          }`}
+                          className={`px-2.5 py-1 rounded-md text-xs font-semibold ${member.workingDays.includes(day)
+                            ? "bg-gray-900 text-white"
+                            : "bg-gray-100 text-gray-400"
+                            }`}
                         >
                           {day}
                         </span>
