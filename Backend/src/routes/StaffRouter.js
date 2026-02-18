@@ -168,8 +168,35 @@ router.get("/availability", async (req, res) => {
   }
 });
 
-// GET: Fetch all staff (unchanged, or apply same fix? Usually only admin sees this)
-// ...
+// GET: Fetch all staff for the logged-in owner
+router.get("/", async (req, res) => {
+  try {
+    const ownerId = req.session.ownerId;
+    if (!ownerId) {
+      return res.status(401).json({ message: "Unauthorized. Please log in." });
+    }
+
+    const { role, branchId: sessionBranchId } = req.session;
+    const { branchId: queryBranchId } = req.query;
+
+    let query = { ownerId };
+
+    // Apply branch filtering logic
+    if (role && role.toLowerCase() === 'receptionist') {
+      // Receptionists only see staff from their own branch
+      query.branchId = sessionBranchId;
+    } else if (queryBranchId && queryBranchId !== "all") {
+      // Admins (or others) can filter by branch ID
+      query.branchId = queryBranchId;
+    }
+
+    const staffMembers = await Staff.find(query);
+    res.json(staffMembers);
+  } catch (err) {
+    console.error("Error fetching staff:", err);
+    res.status(500).json({ message: err.message || "Error fetching staff" });
+  }
+});
 
 // POST: Create a new staff member
 router.post("/", async (req, res) => {
