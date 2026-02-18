@@ -120,10 +120,10 @@ router.post("/mark", async (req, res) => {
         .json({ message: "staffId, date, and status are required." });
     }
 
-    if (!["present", "absent"].includes(status)) {
+    if (!["present", "absent", "on-leave"].includes(status)) {
       return res
         .status(400)
-        .json({ message: "Status must be 'present' or 'absent'." });
+        .json({ message: "Status must be 'present', 'absent', or 'on-leave'." });
     }
 
     // Verify the staff belongs to this owner
@@ -219,6 +219,96 @@ router.post("/mark-bulk", async (req, res) => {
     res
       .status(500)
       .json({ message: err.message || "Error marking attendance" });
+  }
+});
+
+// GET /api/attendance/stats
+// Returns attendance counts (present, absent, on-leave) for a date range
+// Query: startDate, endDate, branchId (optional)
+router.get("/stats", async (req, res) => {
+  try {
+    const { role, ownerId, branchId: sessionBranchId } = req.session;
+    if (!role || !ownerId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { startDate, endDate, branchId } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "startDate and endDate are required" });
+    }
+
+    const query = {
+      ownerId,
+      date: { $gte: startDate, $lte: endDate },
+    };
+
+    if (role === "receptionist") {
+      query.branchId = sessionBranchId;
+    } else if (role === "admin" && branchId && branchId !== "all") {
+      query.branchId = branchId;
+    }
+
+    const records = await Attendance.find(query);
+
+    const stats = {
+      present: 0,
+      absent: 0,
+      "on-leave": 0,
+      total: records.length,
+    };
+
+    records.forEach(r => {
+      if (stats[r.status] !== undefined) {
+        stats[r.status]++;
+      }
+    });
+
+    res.json(stats);
+  } catch (err) {
+    console.error("Error fetching attendance stats:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// GET /api/attendance/calendar
+// Returns daily attendance status for a specific staff member in a date range
+// Query: staffId, startDate, endDate
+router.get("/calendar", async (req, res) => {
+  try {
+    const { role, ownerId } = req.session;
+    if (!role || !ownerId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { staffId, startDate, endDate } = req.query;
+    if (!staffId || !startDate || !endDate) {
+      return res.status(400).json({ message: "staffId, startDate, and endDate are required" });
+    }
+
+    const records = await Attendance.find({
+      ownerId,
+      staffId,
+      date: { $gte: startDate, $lte: endDate },
+    }).select("date status"); // Only need date and status
+
+    // Create a map of date -> status
+    const calendarData = {};
+    records.forEach(r => {
+      calendarData[r.date] = r.status;
+    });
+
+    // Calculate summary for this period
+    const summary = {
+      present: records.filter(r => r.status === "present").length,
+      absent: records.filter(r => r.status === "absent").length,
+      "on-leave": records.filter(r => r.status === "on-leave").length,
+    };
+
+    res.json({ calendar: calendarData, summary });
+
+  } catch (err) {
+    console.error("Error fetching calendar data:", err);
+    res.status(500).json({ message: err.message });
   }
 });
 

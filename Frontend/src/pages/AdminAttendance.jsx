@@ -3,6 +3,16 @@ import AdminLayout from "../components/AdminLayout";
 import { useBranch } from "../context/BranchContext.jsx";
 import axios from "axios";
 import Toast from "../components/Toast";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const api = axios.create({
   baseURL: "/api/attendance",
@@ -15,49 +25,162 @@ const AdminAttendance = () => {
   // Today's date in YYYY-MM-DD
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  // Global State
+  const [activeTab, setActiveTab] = useState("daily"); // "daily", "report", "calendar"
   const [selectedBranch, setSelectedBranch] = useState("all");
-  const [staffList, setStaffList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Daily View State
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [staffList, setStaffList] = useState([]);
   const [markingId, setMarkingId] = useState(null);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [toast, setToast] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Report View State
+  const [reportType, setReportType] = useState("monthly"); // "weekly", "monthly", "yearly"
+  const [reportDate, setReportDate] = useState(todayStr);
+  const [reportStats, setReportStats] = useState(null);
+
+  // Calendar View State
+  const [calendarStaffId, setCalendarStaffId] = useState("");
+  const [calendarMonth, setCalendarMonth] = useState(todayStr.slice(0, 7)); // YYYY-MM
+  const [calendarData, setCalendarData] = useState(null);
+  const [allStaff, setAllStaff] = useState([]); // For staff selector in calendar
 
   const showToast = (message, type = "success") => setToast({ message, type });
 
-  // Fetch attendance data
+  // --- Data Fetching ---
+
+  // Fetch Full Staff List (for Calendar Selector)
+  useEffect(() => {
+    // We can use the existing /api/staff or just fetch attendance with a dummy date to get staff list?
+    // Better to have a unified staff fetch. For now, we'll assume fetchAttendance populates staffList
+    // but strict separation is better.
+    // Let's rely on fetchAttendance("daily") running at least once or implement a specific fetch.
+    // simpler: fetch daily for today to populate staff list if empty.
+    if (activeTab === "calendar" && allStaff.length === 0) {
+      fetchAttendance();
+    }
+  }, [activeTab]);
+
+  // Fetch Attendance for Daily View
   const fetchAttendance = async () => {
     try {
       setLoading(true);
       const params = { date: selectedDate };
       if (selectedBranch !== "all") params.branchId = selectedBranch;
 
-      console.log("DEBUG: AdminAttendance fetching with params:", params);
       const res = await api.get("/", { params });
-      console.log("DEBUG: AdminAttendance received data:", res.data);
-
       setStaffList(res.data);
+      if (allStaff.length === 0) setAllStaff(res.data); // Cache for calendar dropdown
     } catch (err) {
       console.error("Error fetching attendance:", err);
       showToast(
         err.response?.data?.message || "Error fetching attendance",
-        "error",
+        "error"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    console.log("DEBUG: AdminAttendance branches from context:", branches);
-    fetchAttendance();
-  }, [selectedDate, selectedBranch, branches]);
+  // Fetch Report Stats
+  const fetchReportStats = async () => {
+    try {
+      setLoading(true);
+      let startDate, endDate;
+      const dateObj = new Date(reportDate);
 
-  // Filter staff based on search query
+      if (reportType === "weekly") {
+        // Start of week (Sunday)
+        const day = dateObj.getDay();
+        const diff = dateObj.getDate() - day;
+        const start = new Date(dateObj.setDate(diff));
+        const end = new Date(dateObj.setDate(diff + 6));
+        startDate = start.toISOString().split("T")[0];
+        endDate = end.toISOString().split("T")[0];
+      } else if (reportType === "monthly") {
+        const year = dateObj.getFullYear();
+        const month = dateObj.getMonth();
+        startDate = new Date(year, month, 1).toISOString().split("T")[0];
+        endDate = new Date(year, month + 1, 0).toISOString().split("T")[0];
+      } else if (reportType === "yearly") {
+        const year = dateObj.getFullYear();
+        startDate = `${year}-01-01`;
+        endDate = `${year}-12-31`;
+      }
+
+      const params = { startDate, endDate };
+      if (selectedBranch !== "all") params.branchId = selectedBranch;
+
+      const res = await api.get("/stats", { params });
+      setReportStats(res.data);
+    } catch (err) {
+      console.error("Error fetching report stats:", err);
+      showToast(
+        err.response?.data?.message || "Error fetching report stats",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Calendar Data
+  const fetchCalendarData = async () => {
+    if (!calendarStaffId) return;
+
+    try {
+      setLoading(true);
+      const [year, month] = calendarMonth.split("-");
+      const startDate = `${year}-${month}-01`;
+      const endDate = new Date(year, month, 0).toISOString().split("T")[0];
+
+      const params = {
+        staffId: calendarStaffId,
+        startDate,
+        endDate,
+      };
+
+      const res = await api.get("/calendar", { params });
+      setCalendarData(res.data);
+    } catch (err) {
+      console.error("Error fetching calendar data:", err);
+      showToast(
+        err.response?.data?.message || "Error fetching calendar data",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- Effects ---
+
+  useEffect(() => {
+    if (activeTab === "daily") {
+      fetchAttendance();
+    }
+  }, [selectedDate, selectedBranch, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "report") {
+      fetchReportStats();
+    }
+  }, [reportType, reportDate, selectedBranch, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "calendar" && calendarStaffId) {
+      fetchCalendarData();
+    }
+  }, [calendarMonth, calendarStaffId, activeTab]);
+
+  // --- Derived State for Daily View ---
+
   const filteredStaffList = useMemo(() => {
     if (!searchQuery.trim()) return staffList;
-
     const query = searchQuery.toLowerCase();
     return staffList.filter(
       (staff) =>
@@ -66,379 +189,494 @@ const AdminAttendance = () => {
     );
   }, [staffList, searchQuery]);
 
-  // Mark single staff attendance
+  const dailyStats = useMemo(() => {
+    const total = staffList.length;
+    const present = staffList.filter((s) => s.attendance === "present").length;
+    const absent = staffList.filter((s) => s.attendance === "absent").length;
+    const onLeave = staffList.filter((s) => s.attendance === "on-leave").length;
+    const unmarked = total - present - absent - onLeave;
+    return { total, present, absent, onLeave, unmarked };
+  }, [staffList]);
+
+  // --- Handlers ---
+
   const markAttendance = async (staffId, status) => {
     try {
       setMarkingId(staffId);
       await api.post("/mark", { staffId, date: selectedDate, status });
       setStaffList((prev) =>
-        prev.map((s) => (s._id === staffId ? { ...s, attendance: status } : s)),
+        prev.map((s) => (s._id === staffId ? { ...s, attendance: status } : s))
       );
     } catch (err) {
       showToast(
         err.response?.data?.message || "Error marking attendance",
-        "error",
+        "error"
       );
     } finally {
       setMarkingId(null);
     }
   };
 
-  // Bulk mark all
   const markAll = async (status) => {
     try {
       setBulkLoading(true);
-      const records = filteredStaffList.map((s) => ({ staffId: s._id, status }));
+      const records = filteredStaffList.map((s) => ({
+        staffId: s._id,
+        status,
+      }));
       await api.post("/mark-bulk", { date: selectedDate, records });
       setStaffList((prev) =>
         prev.map((s) => {
-          const isInFiltered = filteredStaffList.find(f => f._id === s._id);
+          const isInFiltered = filteredStaffList.find((f) => f._id === s._id);
           return isInFiltered ? { ...s, attendance: status } : s;
         })
       );
-      showToast(`${filteredStaffList.length} staff marked as ${status}`, "success");
+      showToast(
+        `${filteredStaffList.length} staff marked as ${status}`,
+        "success"
+      );
     } catch (err) {
       showToast(
         err.response?.data?.message || "Error marking attendance",
-        "error",
+        "error"
       );
     } finally {
       setBulkLoading(false);
     }
   };
 
-  // Stats
-  const stats = useMemo(() => {
-    const total = staffList.length;
-    const present = staffList.filter((s) => s.attendance === "present").length;
-    const absent = staffList.filter((s) => s.attendance === "absent").length;
-    const unmarked = total - present - absent;
-    return { total, present, absent, unmarked };
-  }, [staffList]);
-
-  // Get branch name
   const getBranchName = (branchId) => {
     const branch = branches.find((b) => b._id === branchId);
     return branch ? branch.name : "Unknown";
   };
 
-  // Format display date
-  const formatDisplayDate = (dateStr) => {
-    const d = new Date(dateStr + "T00:00:00");
-    return d.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  // --- Components ---
+
+  const renderDailyView = () => (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <StatCard
+          icon="ri-team-line"
+          color="rose"
+          label="Total Staff"
+          value={dailyStats.total}
+          sub="All employees"
+        />
+        <StatCard
+          icon="ri-checkbox-circle-line"
+          color="green"
+          label="Present"
+          value={dailyStats.present}
+          sub="Checked in"
+        />
+        <StatCard
+          icon="ri-close-circle-line"
+          color="red"
+          label="Absent"
+          value={dailyStats.absent}
+          sub="Not available"
+        />
+        <StatCard
+          icon="ri-logout-box-r-line"
+          color="blue"
+          label="On Leave"
+          value={dailyStats.onLeave}
+          sub="Approved leave"
+        />
+        <StatCard
+          icon="ri-question-line"
+          color="yellow"
+          label="Pending"
+          value={dailyStats.unmarked}
+          sub="Needs update"
+        />
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+        <div className="flex-1 relative">
+          <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <input
+            type="text"
+            placeholder="Search by name or mobile..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-sm"
+          />
+        </div>
+        <div className="flex gap-2">
+          <BulkButton
+            onClick={() => markAll("present")}
+            icon="ri-checkbox-circle-line"
+            color="green"
+            label="All Present"
+            loading={bulkLoading}
+            disabled={filteredStaffList.length === 0}
+          />
+          <BulkButton
+            onClick={() => markAll("absent")}
+            icon="ri-close-circle-line"
+            color="red"
+            label="All Absent"
+            loading={bulkLoading}
+            disabled={filteredStaffList.length === 0}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredStaffList.map((member) => (
+          <div
+            key={member._id}
+            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all group"
+          >
+            <div className="p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 font-bold text-lg">
+                    {member.name ? member.name.charAt(0) : "S"}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 leading-tight truncate max-w-[120px]">
+                      {member.name || "Unknown"}
+                    </h3>
+                    <p className="text-xs text-gray-500 font-medium">
+                      {member.role || "Staff"}
+                    </p>
+                  </div>
+                </div>
+                <StatusBadge status={member.attendance || "pending"} />
+              </div>
+
+              <div className="space-y-1.5 mb-5">
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <i className="ri-building-line text-rose-400"></i>
+                  <span>{getBranchName(member.branchId)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <i className="ri-phone-line text-rose-400"></i>
+                  <span>{member.phone || "No Phone"}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <ActionButton
+                  onClick={() => markAttendance(member._id, "present")}
+                  active={member.attendance === "present"}
+                  disabled={markingId === member._id}
+                  icon="ri-checkbox-circle-line"
+                  color="green"
+                  label="P"
+                />
+                <ActionButton
+                  onClick={() => markAttendance(member._id, "absent")}
+                  active={member.attendance === "absent"}
+                  disabled={markingId === member._id}
+                  icon="ri-close-circle-line"
+                  color="red"
+                  label="A"
+                />
+                <ActionButton
+                  onClick={() => markAttendance(member._id, "on-leave")}
+                  active={member.attendance === "on-leave"}
+                  disabled={markingId === member._id}
+                  icon="ri-logout-box-r-line"
+                  color="blue"
+                  label="L"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        {filteredStaffList.length === 0 && (
+          <div className="col-span-full py-10 text-center text-gray-500">
+            No staff found matching your filters.
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  const renderReportView = () => {
+    if (!reportStats) return null;
+
+    const data = [
+      { name: "Present", value: reportStats.present, fill: "#22c55e" },
+      { name: "Absent", value: reportStats.absent, fill: "#ef4444" },
+      { name: "On Leave", value: reportStats["on-leave"], fill: "#3b82f6" },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap gap-4 items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <div className="flex gap-2">
+            {["weekly", "monthly", "yearly"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setReportType(type)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${reportType === type
+                    ? "bg-rose-500 text-white shadow-lg shadow-rose-500/30"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            ))}
+          </div>
+          <input
+            type={reportType === "yearly" ? "number" : "date"}
+            value={reportDate}
+            onChange={(e) => setReportDate(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard
+            icon="ri-checkbox-circle-line"
+            color="green"
+            label="Total Present"
+            value={reportStats.present}
+            sub="Days"
+          />
+          <StatCard
+            icon="ri-close-circle-line"
+            color="red"
+            label="Total Absent"
+            value={reportStats.absent}
+            sub="Days"
+          />
+          <StatCard
+            icon="ri-logout-box-r-line"
+            color="blue"
+            label="Total Leaves"
+            value={reportStats["on-leave"]}
+            sub="Days"
+          />
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-[400px]">
+          <h3 className="text-lg font-bold text-gray-900 mb-6">
+            Attendance Overview
+          </h3>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} />
+              <YAxis axisLine={false} tickLine={false} />
+              <Tooltip
+                cursor={{ fill: "#f3f4f6" }}
+                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)" }}
+              />
+              <Bar
+                dataKey="value"
+                radius={[8, 8, 0, 0]}
+                barSize={60}
+                animationDuration={1000}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    );
   };
 
-  const isToday = selectedDate === todayStr;
+  const renderCalendarView = () => {
+    // Generate calendar grid
+    const [year, month] = calendarMonth.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 = Sun
+    const days = [];
 
-  // Loading state
-  if (loading && staffList.length === 0) {
+    // Empty cells for days before the 1st
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(<div key={`empty-${i}`} className="h-24 bg-gray-50/50" />);
+    }
+
+    // Days with data
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(
+        day
+      ).padStart(2, "0")}`;
+      const status = calendarData?.calendar?.[dateStr];
+
+      let statusColor = "bg-white hover:bg-gray-50";
+      let statusIcon = null;
+
+      if (status === "present") {
+        statusColor = "bg-green-50 border-green-100";
+        statusIcon = <i className="ri-checkbox-circle-fill text-green-500"></i>;
+      } else if (status === "absent") {
+        statusColor = "bg-red-50 border-red-100";
+        statusIcon = <i className="ri-close-circle-fill text-red-500"></i>;
+      } else if (status === "on-leave") {
+        statusColor = "bg-blue-50 border-blue-100";
+        statusIcon = <i className="ri-logout-box-r-fill text-blue-500"></i>;
+      }
+
+      days.push(
+        <div
+          key={day}
+          className={`h-24 p-2 border border-gray-100 rounded-lg transition-all flex flex-col justify-between ${statusColor}`}
+        >
+          <span className={`text-sm font-semibold ${status ? "text-gray-900" : "text-gray-400"}`}>{day}</span>
+          {status && (
+            <div className="self-end">
+              {statusIcon}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
-      <AdminLayout>
-        <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-600 font-semibold">Loading attendance...</p>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+          <select
+            value={calendarStaffId}
+            onChange={(e) => setCalendarStaffId(e.target.value)}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-rose-400 outline-none"
+          >
+            <option value="">Select Staff Member</option>
+            {allStaff.map((s) => (
+              <option key={s._id} value={s._id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="month"
+            value={calendarMonth}
+            onChange={(e) => setCalendarMonth(e.target.value)}
+            className="px-4 py-2 rounded-lg border border-gray-200 text-sm focus:border-rose-400 outline-none"
+          />
+        </div>
+
+        {calendarStaffId && calendarData?.summary ? (
+          <>
+            <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex flex-wrap gap-6 justify-center">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-sm font-medium text-gray-700">Present: {calendarData.summary.present} days</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                <span className="text-sm font-medium text-gray-700">Absent: {calendarData.summary.absent} days</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className="text-sm font-medium text-gray-700">Leave: {calendarData.summary["on-leave"]} days</span>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <div className="grid grid-cols-7 gap-4 mb-4 text-center">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                  <div key={d} className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    {d}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-2">{days}</div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <i className="ri-user-search-line text-4xl text-gray-300 mb-2"></i>
+            <p className="text-gray-500">Select a staff member to view their calendar</p>
           </div>
-        </main>
-      </AdminLayout>
+        )}
+      </div>
     );
-  }
+  };
 
   return (
     <AdminLayout>
-      <main className="min-h-screen bg-white lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
-        {/* Header with Date & Branch Selection */}
-        <div className="mb-5">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+      <main className="min-h-screen bg-gray-50/50 lg:ml-64 pt-16 lg:pt-8 px-4 sm:px-6 lg:px-8 pb-10">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-1">
                 Attendance Management
               </h1>
               <p className="text-gray-600 text-sm">
-                Track and manage daily staff attendance
+                Track and monitor staff attendance and reports
               </p>
             </div>
 
-            {/* Date Picker & Branch Switcher - Inline with Header */}
-            <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
-              {/* Date Picker */}
-              <div>
-                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                  <i className="ri-calendar-line mr-1"></i>
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white text-sm"
-                />
-                {isToday && (
-                  <p className="mt-1 text-xs text-rose-600 font-medium">
-                    📅 Today
-                  </p>
-                )}
-              </div>
-
-              {/* Branch Switcher */}
-              <div>
-                <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
-                  <i className="ri-building-line mr-1"></i>
-                  Branch
-                </label>
-                <select
-                  value={selectedBranch}
-                  onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 rounded-lg border border-gray-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white text-sm min-w-[180px]"
-                >
-                  <option value="all">All Branches</option>
-                  {branches.map((branch) => (
-                    <option key={branch._id} value={branch._id}>
-                      {branch.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Branch Switcher */}
+            <div className="w-full lg:w-auto">
+              <label className="text-xs font-semibold text-gray-700 mb-1.5 block">
+                Branch Scope
+              </label>
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="w-full lg:w-64 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all bg-white text-sm"
+              >
+                <option value="all">All Branches</option>
+                {branches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
             </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div className="flex gap-1 bg-white p-1 rounded-xl shadow-sm border border-gray-100 w-fit">
+            <TabButton
+              active={activeTab === "daily"}
+              onClick={() => setActiveTab("daily")}
+              label="Daily View"
+              icon="ri-list-check"
+            />
+            <TabButton
+              active={activeTab === "report"}
+              onClick={() => setActiveTab("report")}
+              label="Reports"
+              icon="ri-bar-chart-box-line"
+            />
+            <TabButton
+              active={activeTab === "calendar"}
+              onClick={() => setActiveTab("calendar")}
+              label="Calendar View"
+              icon="ri-calendar-todo-line"
+            />
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {/* Total Staff */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-rose-500/5 border border-rose-100 hover:shadow-xl hover:shadow-rose-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-lg shadow-rose-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-team-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">
-                Total
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Total Staff
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {stats.total}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">All employees</p>
-          </div>
-
-          {/* Present */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-green-500/5 border border-green-100 hover:shadow-xl hover:shadow-green-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-green-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-checkbox-circle-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                Present
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Present Today
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {stats.present}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">Checked in</p>
-          </div>
-
-          {/* Absent */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-red-500/5 border border-red-100 hover:shadow-xl hover:shadow-red-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-lg shadow-red-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-close-circle-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                Absent
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Absent Today
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {stats.absent}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">Not available</p>
-          </div>
-
-          {/* Unmarked */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-yellow-500/5 border border-yellow-100 hover:shadow-xl hover:shadow-yellow-500/10 transition-all group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/30 group-hover:scale-110 transition-transform">
-                <i className="ri-question-line text-white text-2xl"></i>
-              </div>
-              <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
-                Pending
-              </span>
-            </div>
-            <h3 className="text-gray-600 text-sm font-medium mb-1">
-              Unmarked
-            </h3>
-            <p className="text-3xl font-bold text-gray-900">
-              {stats.unmarked}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">Needs update</p>
-          </div>
-        </div>
-
-        {/* Search & Quick Actions */}
-        {staffList.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            {/* Search Bar */}
-            <div className="flex-1">
-              <div className="relative">
-                <i className="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                <input
-                  type="text"
-                  placeholder="Search by name or mobile..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-rose-400 focus:ring-2 focus:ring-rose-100 outline-none transition-all text-sm"
-                />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <i className="ri-close-line"></i>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Bulk Action Buttons */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => markAll("present")}
-                disabled={bulkLoading || filteredStaffList.length === 0}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <i className="ri-checkbox-circle-line"></i>
-                Mark All Present
-              </button>
-              <button
-                onClick={() => markAll("absent")}
-                disabled={bulkLoading || filteredStaffList.length === 0}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-all flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <i className="ri-close-circle-line"></i>
-                Mark All Absent
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Staff Attendance List */}
-        {filteredStaffList.length === 0 && !loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-20 h-20 bg-gradient-to-br from-rose-100 to-pink-100 rounded-full flex items-center justify-center mb-4">
-              <i className="ri-search-line text-rose-500 text-3xl"></i>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {searchQuery ? "No Results Found" : "No Staff Found"}
-            </h2>
-            <p className="text-gray-600 text-center max-w-md text-sm">
-              {searchQuery ? (
-                <>
-                  No staff members match your search "{searchQuery}".
-                  <br />
-                  Try searching with a different name or mobile number.
-                </>
-              ) : selectedBranch !== "all" ? (
-                `No staff members found for branch: ${getBranchName(selectedBranch)}.`
-              ) : (
-                "No staff members found in the entire organization."
-              )}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredStaffList.map((member) => (
-              <div
-                key={member._id}
-                className="bg-white rounded-2xl shadow-lg shadow-rose-500/5 border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-rose-500/10 transition-all group"
-              >
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center text-rose-600 font-bold border-2 border-rose-200 text-xl flex-shrink-0">
-                        {member.name ? member.name.charAt(0) : "S"}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
-                          {member.name || "Unknown"}
-                        </h3>
-                        <p className="text-sm text-gray-500 font-medium">
-                          {member.role || "Staff"}
-                        </p>
-                      </div>
-                    </div>
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${(member.status || member.staffStatus) === "active"
-                          ? "bg-green-50 text-green-700 border-green-200"
-                          : (member.status || member.staffStatus) === "on-leave"
-                            ? "bg-yellow-50 text-yellow-700 border-yellow-200"
-                            : "bg-red-50 text-red-700 border-red-200"
-                        }`}
-                    >
-                      {(member.status || member.staffStatus) === "on-leave"
-                        ? "On Leave"
-                        : (member.status || member.staffStatus || "Active")
-                          .charAt(0)
-                          .toUpperCase() +
-                        (member.status || member.staffStatus || "active").slice(1)}
-                    </span>
-                  </div>
-
-                  {/* Details */}
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <i className="ri-building-line text-rose-500"></i>
-                      <span className="font-medium">
-                        {getBranchName(member.branchId)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <i className="ri-phone-line text-rose-500"></i>
-                      <span>{member.phone || "No Phone"}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => markAttendance(member._id, "present")}
-                      disabled={markingId === member._id}
-                      className={`py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${member.attendance === "present"
-                          ? "bg-green-500 text-white shadow-lg shadow-green-500/30 ring-2 ring-green-500 ring-offset-2"
-                          : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-600 border border-gray-200"
-                        } disabled:opacity-50`}
-                    >
-                      <i className="ri-checkbox-circle-line text-lg"></i>
-                      Present
-                    </button>
-                    <button
-                      onClick={() => markAttendance(member._id, "absent")}
-                      disabled={markingId === member._id}
-                      className={`py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${member.attendance === "absent"
-                          ? "bg-red-500 text-white shadow-lg shadow-red-500/30 ring-2 ring-red-500 ring-offset-2"
-                          : "bg-gray-50 text-gray-600 hover:bg-red-50 hover:text-red-600 border border-gray-200"
-                        } disabled:opacity-50`}
-                    >
-                      <i className="ri-close-circle-line text-lg"></i>
-                      Absent
-                    </button>
-                  </div>
+        {/* Content Area */}
+        <div className="animate-fade-in-up">
+          {activeTab === "daily" && (
+            <>
+              {/* Date Selector for Daily View */}
+              <div className="mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm w-fit">
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-semibold text-gray-700">Date:</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-300 focus:border-rose-400 outline-none text-sm"
+                  />
+                  {selectedDate === todayStr && (
+                    <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded">Today</span>
+                  )}
                 </div>
               </div>
-            ))}
+              {renderDailyView()}
+            </>
+          )}
+          {activeTab === "report" && renderReportView()}
+          {activeTab === "calendar" && renderCalendarView()}
+        </div>
+
+        {/* Loading Overlay */}
+        {loading && (
+          <div className="fixed inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="w-12 h-12 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
@@ -452,6 +690,92 @@ const AdminAttendance = () => {
         )}
       </main>
     </AdminLayout>
+  );
+};
+
+// Sub-components for cleaner code
+const StatCard = ({ icon, color, label, value, sub }) => (
+  <div
+    className={`bg-white rounded-2xl p-5 shadow-sm border border-${color}-100 hover:shadow-md transition-all group`}
+  >
+    <div className="flex items-center justify-between mb-3">
+      <div
+        className={`w-10 h-10 rounded-xl bg-${color}-50 flex items-center justify-center group-hover:scale-110 transition-transform`}
+      >
+        <i className={`${icon} text-${color}-500 text-xl`}></i>
+      </div>
+      <span
+        className={`text-[10px] font-bold uppercase tracking-wider text-${color}-600 bg-${color}-50 px-2 py-0.5 rounded-full`}
+      >
+        {label}
+      </span>
+    </div>
+    <p className="text-2xl font-bold text-gray-900">{value}</p>
+    <p className="text-xs text-gray-500 mt-1">{sub}</p>
+  </div>
+);
+
+const TabButton = ({ active, onClick, label, icon }) => (
+  <button
+    onClick={onClick}
+    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${active
+        ? "bg-gray-900 text-white shadow-md"
+        : "text-gray-600 hover:bg-gray-50"
+      }`}
+  >
+    <i className={icon}></i>
+    {label}
+  </button>
+);
+
+const BulkButton = ({ onClick, icon, color, label, loading, disabled }) => (
+  <button
+    onClick={onClick}
+    disabled={loading || disabled}
+    className={`px-4 py-2 bg-${color}-500 text-white rounded-xl text-sm font-medium hover:bg-${color}-600 transition-all flex items-center gap-2 disabled:opacity-50 shadow-sm hover:shadow-md`}
+  >
+    <i className={icon}></i>
+    {label}
+  </button>
+);
+
+const ActionButton = ({ onClick, active, disabled, icon, color, label }) => (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick();
+    }}
+    disabled={disabled}
+    className={`h-9 rounded-lg flex items-center justify-center transition-all ${active
+        ? `bg-${color}-500 text-white shadow-${color}-500/30 shadow-lg scale-105`
+        : `bg-gray-50 text-gray-400 hover:bg-${color}-50 hover:text-${color}-500 hover:scale-105`
+      }`}
+  >
+    <i className={`${icon} ${active ? "text-lg" : "text-base"}`}></i>
+  </button>
+);
+
+const StatusBadge = ({ status }) => {
+  const styles = {
+    present: "bg-green-50 text-green-700 border-green-200",
+    absent: "bg-red-50 text-red-700 border-red-200",
+    "on-leave": "bg-blue-50 text-blue-700 border-blue-200",
+    pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+  }[status] || "bg-gray-50 text-gray-700 border-gray-200";
+
+  const label = {
+    present: "Present",
+    absent: "Absent",
+    "on-leave": "On Leave",
+    pending: "Pending",
+  }[status] || "Unknown";
+
+  return (
+    <span
+      className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${styles}`}
+    >
+      {label}
+    </span>
   );
 };
 
