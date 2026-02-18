@@ -10,137 +10,152 @@ const client = wrapper(axios.create({
 }));
 
 async function run() {
-    try {
-        const timestamp = Date.now();
-        const ownerEmail = `owner_${timestamp}@test.com`;
-        const ownerPassword = 'password123';
+    const timestamp = Date.now();
+    // Use existing credentials
+    const ownerEmail = `curl_${timestamp}@test.com`;
+    // const ownerEmail = "curl2@test.com"; // Legacy
+    const ownerPassword = "password123";
 
-        console.log("1. Registering Owner...");
-        const payload = {
+    try {
+        console.log(`1. Registering new Owner (${ownerEmail})...`);
+        await client.post('/auth/register', { // Register instead of Login to get new limits
             name: "Test Owner",
             email: ownerEmail,
+            phone: `99${timestamp.toString().slice(-8)}`,
             password: ownerPassword,
             confirmPassword: ownerPassword,
-            phone: `99${timestamp.toString().slice(-8)}`, // 10 digit phone
             agreeTerms: true
-        };
-        console.log("   Payload:", JSON.stringify(payload));
-
-        try {
-            await client.post('/auth/register', payload);
-        } catch (regErr) {
-            console.error("   Registration Failed:", regErr.message);
-            if (regErr.response) {
-                console.error("   Response Data:", JSON.stringify(regErr.response.data));
-                console.error("   Response Status:", regErr.response.status);
-            }
-            throw regErr;
-        }
-
-        console.log("2. Logging in...");
-        await client.post('/auth/login', {
-            email: ownerEmail,
-            password: ownerPassword
         });
 
-        console.log("3. Creating Branch...");
-        const branchRes = await client.post('/api/branches', {
-            branchName: `Test Branch ${timestamp}`,
-            location: "Test Location",
+        console.log("2. Cleaning up existing branches...");
+        try {
+            const myBranches = await client.get('/api/branches/my-branches');
+            for (const b of myBranches.data) {
+                console.log(`   Deleting branch ${b._id}...`);
+                await client.delete(`/api/branches/${b._id}`);
+            }
+        } catch (e) { console.log("   Cleanup warning:", e.message); }
+
+        console.log("3. Creating Branch A...");
+        const branchARes = await client.post('/api/branches', {
+            name: `Branch A ${timestamp}`,
+            address: "123 Test St",
+            city: "Test City",
+            state: "Test State",
+            zipCode: "12345",
+            phone: `123${timestamp.toString().slice(-7)}`,
+            email: `branchA_${timestamp}@test.com`,
             openingTime: "09:00",
             closingTime: "17:00",
-            managerName: "Test Manager",
-            managerPhone: `98${timestamp.toString().slice(-8)}`,
-            managerEmail: `manager_${timestamp}@test.com`,
-            managerPassword: "password123"
+            workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+            isActive: true
         });
-        const branchId = branchRes.data.branch._id;
-        console.log("   Branch ID:", branchId);
+        if (!branchARes.data || !branchARes.data._id) {
+            console.error("Failed to create Branch A:", branchARes.data);
+            return;
+        }
+        const branchAId = branchARes.data._id;
+        console.log("   Branch A ID:", branchAId);
 
-        console.log("4. Creating Staff...");
-        const staffRes = await client.post('/api/staff', {
-            name: "Test Staff",
-            phone: `97${timestamp.toString().slice(-8)}`,
-            branchId: branchId,
+        console.log("4. Creating Branch B...");
+        const branchBRes = await client.post('/api/branches', {
+            name: `Branch B ${timestamp}`,
+            address: "456 Other St",
+            city: "Other City",
+            state: "Other State",
+            zipCode: "67890",
+            phone: `456${timestamp.toString().slice(-7)}`,
+            email: `branchB_${timestamp}@test.com`,
+            openingTime: "09:00",
+            closingTime: "17:00",
+            workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+            isActive: true
+        });
+        if (!branchBRes.data || !branchBRes.data._id) {
+            console.error("Failed to create Branch B:", branchBRes.data);
+            return;
+        }
+        const branchBId = branchBRes.data._id;
+        console.log("   Branch B ID:", branchBId);
+
+        console.log("5. Creating Staff in Branch A...");
+        // Receptionist A (We will login as this user)
+        const phoneA1 = `97${timestamp.toString().slice(-8)}`;
+        const staffA1Res = await client.post('/api/staff', {
+            name: "Receptionist A",
+            phone: phoneA1,
+            branchId: branchAId,
             workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
             workingHours: { start: "09:00", end: "17:00" },
-            specialization: "Haircut"
+            role: "Receptionist",
+            roleTitle: "Receptionist",
+            specialization: "Front Desk"
         });
-        const staffId = staffRes.data._id;
-        console.log("   Staff ID:", staffId);
+        const staffA1Id = staffA1Res.data._id;
+        console.log(`   Staff A1 (Receptionist) ID: ${staffA1Id}, Phone: ${phoneA1}`);
 
-        console.log("5. Creating Category...");
-        const catRes = await client.post('/api/categories', {
-            name: `Test Cat ${timestamp}`,
-            branchId: branchId
+        // Barber A
+        const staffA2Res = await client.post('/api/staff', {
+            name: "Barber A",
+            phone: `96${timestamp.toString().slice(-8)}`,
+            branchId: branchAId,
+            workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            workingHours: { start: "09:00", end: "17:00" },
+            role: "Barber",
+            roleTitle: "Barber",
+            specialization: "Cutting"
         });
-        const categoryId = catRes.data.category ? catRes.data.category._id : catRes.data._id;
-        console.log("   Category ID:", categoryId);
+        console.log(`   Staff A2 (Barber) ID: ${staffA2Res.data._id}`);
 
-        console.log("6. Creating Service...");
-        const serviceRes = await client.post('/api/services', {
-            name: `Service_${timestamp}`,
-            category: categoryId,
-            price: 100,
-            duration: "45 min",
-            branchId: branchId,
-            gender: "Unisex"
+        console.log("6. Creating Staff in Branch B (Should be invisible to Receptionist A)...");
+        // Stylist B
+        const staffB1Res = await client.post('/api/staff', {
+            name: "Stylist B",
+            phone: `95${timestamp.toString().slice(-8)}`,
+            branchId: branchBId,
+            workingDays: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+            workingHours: { start: "09:00", end: "17:00" },
+            role: "Stylist",
+            roleTitle: "Stylist",
+            specialization: "Styling"
         });
-        const serviceName = serviceRes.data.name;
-        console.log("   Service Name:", serviceName);
+        console.log(`   Staff B1 (Stylist) ID: ${staffB1Res.data._id}`);
 
-        console.log("7. Checking Initial Availability (10:00 AM)...");
-        const availRes1 = await client.get(`/api/staff/availability?branchId=${branchId}&date=${new Date().toISOString().split('T')[0]}&time=10:00 AM`);
-        const myStaff1 = availRes1.data.find(s => s._id === staffId);
-        console.log("   Status:", myStaff1 ? myStaff1.currentStatus : "Staff not found in availability list");
+        console.log("7. Logging out Owner...");
+        await client.post('/auth/logout');
 
-        console.log("8. Booking Appointment at 10:00 AM...");
-        await client.post('/api/appointments', {
-            customerName: "Test Client",
-            email: "client@test.com",
-            phone: "1234567890",
-            category: "Test Cat",
-            service: serviceName,
-            staff: staffId,
-            date: new Date().toISOString().split('T')[0], // Today
-            time: "10:00 AM",
-            branchId: branchId
+        console.log(`8. Logging in as Receptionist A (Phone: ${phoneA1})...`);
+        await client.post('/auth/login/staff', {
+            phone: phoneA1
         });
-        console.log("   Booking success.");
 
-        console.log("9. Checking Availability after Booking (10:15 AM)...");
-        const availRes2 = await client.get(`/api/staff/availability?branchId=${branchId}&date=${new Date().toISOString().split('T')[0]}&time=10:15 AM`);
-        const myStaff2 = availRes2.data.find(s => s._id === staffId);
-        console.log("   Status (should be busy):", myStaff2 ? myStaff2.currentStatus : "Staff not found"); // Expect busy
+        console.log("9. Checking Availability as Receptionist A...");
+        // Call /availability. The backend now uses req.session.staffId to find the branch.
+        const availRes = await client.get(`/api/staff/availability?date=${new Date().toISOString().split('T')[0]}&time=10:00 AM`);
 
-        console.log("10. Attempting Overlapping Booking (10:15 AM)...");
-        try {
-            await client.post('/api/appointments', {
-                customerName: "Test Client 2",
-                email: "client2@test.com",
-                phone: "0987654321",
-                category: "Test Cat",
-                service: serviceName,
-                staff: staffId,
-                date: new Date().toISOString().split('T')[0],
-                time: "10:15 AM", // Overlaps with 10:00 - 10:45
-                branchId: branchId
-            });
-            console.error("   ❌ Failed: Overlapping booking was ALLOWED!");
-        } catch (err) {
-            if (err.response && err.response.status === 400) {
-                console.log("   ✅ Success: Overlapping booking blocked.", err.response.data.message);
-            } else {
-                console.error("   ❌ Failed: Unexpected error", err.message);
-                if (err.response) {
-                    console.error("   Response Data:", JSON.stringify(err.response.data));
-                }
-            }
+        console.log("\n--- VISIBLE STAFF ---");
+        const visibleNames = availRes.data.map(s => `${s.name} (${s.roleTitle || s.role})`);
+        console.log(visibleNames);
+        console.log("---------------------\n");
+
+        const seesA1 = visibleNames.some(n => n.includes("Receptionist A"));
+        const seesA2 = visibleNames.some(n => n.includes("Barber A"));
+        const seesB1 = visibleNames.some(n => n.includes("Stylist B"));
+
+        // Expected: seesA1 (Self), seesA2 (Barber A).
+        // Expected: DOES NOT see seesB1 (Stylist B) because of strict isolation.
+        if (seesA1 && seesA2 && !seesB1) {
+            console.log("✅ SUCCESS: Receptionist A sees ONLY Branch A staff. Isolation working as requested.");
+        } else {
+            console.error("❌ FAILURE: Isolation check failed.");
+            if (seesB1) console.error(" - Receptionist A CAN see Branch B staff (Should NOT).");
+            if (!seesA1 || !seesA2) console.error(" - Receptionist A CANNOT see own branch staff.");
+            process.exit(1);
         }
 
     } catch (err) {
-        // Global catch block just in case
-        // Already handled specific step errors
+        console.error("Script Error:", err.message);
+        if (err.response) console.error("Response:", JSON.stringify(err.response.data));
     }
 }
 

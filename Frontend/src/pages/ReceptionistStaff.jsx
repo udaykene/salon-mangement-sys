@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useBranch } from "../context/BranchContext";
 import axios from "axios";
 import ReceptionistLayout from "../components/ReceptionistLayout";
 
@@ -11,6 +12,9 @@ const ReceptionistStaff = () => {
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   const { user } = useAuth();
+  const { branches } = useBranch();
+  // Initialize with "all" to default to showing all branches as requested
+  const [selectedBranch, setSelectedBranch] = useState("all");
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,14 +40,9 @@ const ReceptionistStaff = () => {
     const fetchStaffAvailability = async () => {
       try {
         setLoading(true);
-        // Assuming user.branchId is available in context. 
-        // If user is receptionist, they belong to a branch.
-        const branchId = user?.branchId;
-
+        // TL Request: Remove branch filter, show only own branch.
+        // We don't send branchId, enabling backend to default/enforce session branch.
         let url = "/api/staff/availability";
-        if (branchId) {
-          url += `?branchId=${branchId}`;
-        }
 
         const res = await axios.get(url, { withCredentials: true });
 
@@ -51,7 +50,7 @@ const ReceptionistStaff = () => {
         const mappedStaff = res.data.map(s => ({
           ...s,
           id: s._id, // Map _id to id
-          role: s.roleTitle || s.role, // Use roleTitle if available
+          role: s.roleTitle || s.role || "Staff", // Use roleTitle if available, fallback to role, then "Staff"
           status: s.currentStatus || "available", // Default
           avatar: getAvatar(s.name),
           gradient: getGradient(s.name)
@@ -72,16 +71,21 @@ const ReceptionistStaff = () => {
       const interval = setInterval(fetchStaffAvailability, 60000);
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, selectedBranch]); // Re-fetch when branch selection changes
 
   const roles = [
     "all",
-    "Hair Stylist",
-    "Massage Therapist",
+    "Receptionist",
+    "Stylist",
+    "Hair Stylist", // Legacy support
     "Makeup Artist",
+    "Spa Therapist",
+    "Massage Therapist", // Legacy support
     "Barber",
     "Nail Technician",
-    "Spa Therapist",
+    "Bridal Specialist",
+    "Manager",
+    "Assistant",
   ];
 
   const getStatusColor = (status) => {
@@ -252,6 +256,10 @@ const ReceptionistStaff = () => {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+
+              {/* Branch Filter (Restored) */}
+              {/* Branch Filter Removed per TL Request */}
+
               {/* Role Filter */}
               <div className="w-full lg:w-auto">
                 <label className="text-sm font-semibold text-gray-700 mb-2 block">
