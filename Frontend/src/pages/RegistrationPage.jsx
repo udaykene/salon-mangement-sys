@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Certifications from "../components/Certifications";
-import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const SalonRegister = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -33,12 +34,14 @@ const SalonRegister = () => {
     }
 
     try {
-      const res = await axios.post("auth/register", formData, {
-        withCredentials: true,
+      const res = await register({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
       });
-      alert(res.data.message);
-      // Optional: Redirect to login after success
-      // navigate('/login');
+
+      alert(res.message || "Registration successful");
       navigate("/admin/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Registration failed");
@@ -123,7 +126,7 @@ const SalonRegister = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                    placeholder="••••••••"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
                     required
                   />
@@ -148,7 +151,7 @@ const SalonRegister = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                    placeholder="••••••••"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
                     required
                   />

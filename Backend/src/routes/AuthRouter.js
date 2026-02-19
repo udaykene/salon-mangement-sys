@@ -25,9 +25,8 @@ router.post("/register", SignUpValidation, async (req, res) => {
       phone,
       password,
       subscription: {
-        plan: "basic",
-        maxBranches: 1,
-        startDate: new Date(),
+        plan: null,
+        maxBranches: 0,
       },
     });
 

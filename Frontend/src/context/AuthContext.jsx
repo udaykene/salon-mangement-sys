@@ -11,6 +11,9 @@ export const AuthProvider = ({ children }) => {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [subscription, setSubscription] = useState(null);
+  const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [hasPlan, setHasPlan] = useState(false);
 
   // 1. Check if user is already logged in on mount
   const checkAuth = async () => {
@@ -22,6 +25,11 @@ export const AuthProvider = ({ children }) => {
         setUser(profileRes.data.profile);
         setRole(profileRes.data.role);
         setIsAuthenticated(true);
+
+        // Fetch subscription data for admins
+        if (profileRes.data.role === "admin") {
+          await fetchSubscription();
+        }
       } else {
         setUser(null);
         setRole(null);
@@ -35,11 +43,44 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Fetch subscription status
+  const fetchSubscription = async () => {
+    try {
+      const res = await axios.get("/api/subscriptions/current");
+      setSubscription(res.data.subscription);
+      setHasPlan(res.data.hasPlan);
+      setIsTrialExpired(res.data.isTrialExpired);
+    } catch (err) {
+      console.error("Subscription fetch failed:", err);
+    }
+  };
+
   useEffect(() => {
     checkAuth();
   }, []);
 
-  // 2. Owner Login
+  // 2. Owner Registration
+  const register = async ({ name, email, phone, password }) => {
+    const res = await axios.post("/auth/register", {
+      name,
+      email,
+      phone,
+      password,
+    });
+
+    if (res.data.success) {
+      const profileRes = await axios.get("/api/profile");
+      setUser(profileRes.data.profile);
+      setRole("admin");
+      setIsAuthenticated(true);
+      await fetchSubscription();
+      return { success: true, message: res.data.message };
+    }
+
+    return { success: false };
+  };
+
+  // 3. Owner Login
   const login = async (email, password) => {
     const res = await axios.post("/auth/login", { email, password });
     if (res.data.success) {
@@ -48,11 +89,12 @@ export const AuthProvider = ({ children }) => {
       setUser(profileRes.data.profile);
       setRole("admin");
       setIsAuthenticated(true);
+      await fetchSubscription();
       return { success: true };
     }
   };
 
-  // 3. Staff Login
+  // 4. Staff Login
   const staffLogin = async (phone) => {
     const res = await axios.post("/auth/login/staff", { phone });
     if (res.data.success) {
@@ -64,7 +106,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 4. Logout
+  // 5. Logout
   const logout = async () => {
     try {
       await axios.post("/auth/logout");
@@ -84,10 +126,15 @@ export const AuthProvider = ({ children }) => {
         role,
         loading,
         isAuthenticated,
+        subscription,
+        isTrialExpired,
+        hasPlan,
+        register,
         login,
         staffLogin,
         logout,
         checkAuth,
+        fetchSubscription,
       }}
     >
       {children}

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const AdminSettings = () => {
+  const { fetchSubscription: refreshAuthSubscription } = useAuth();
   const [activeTab, setActiveTab] = useState("general");
   const [isSaving, setIsSaving] = useState(false);
   const [subscriptionData, setSubscriptionData] = useState(null);
@@ -117,6 +119,7 @@ const AdminSettings = () => {
 
       alert(res.data.message);
       await fetchSubscriptionData();
+      if (refreshAuthSubscription) await refreshAuthSubscription();
     } catch (err) {
       console.error("Error upgrading plan:", err);
       alert(err.response?.data?.message || "Failed to upgrade plan");
@@ -235,7 +238,6 @@ const AdminSettings = () => {
 
         {/* Content Card */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-
           {/* General Settings */}
           {activeTab === "general" && (
             <>
@@ -387,17 +389,23 @@ const AdminSettings = () => {
                               <h3 className="text-2xl font-bold text-gray-900 capitalize">
                                 {plans[currentPlanKey]?.name} Plan
                               </h3>
-                              <p className="text-gray-500 text-sm">{plans[currentPlanKey]?.tagline}</p>
+                              <p className="text-gray-500 text-sm">
+                                {plans[currentPlanKey]?.tagline}
+                              </p>
                             </div>
                           </div>
 
                           {/* right: branch usage */}
                           <div className="sm:text-right">
-                            <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide font-medium">Branch Usage</p>
+                            <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide font-medium">
+                              Branch Usage
+                            </p>
                             <p className="text-3xl font-bold text-gray-900">
                               {subscriptionData.currentBranchCount}
                               <span className="text-gray-400 text-lg font-normal">
-                                /{subscriptionData.subscription?.maxBranches || 1}
+                                /
+                                {subscriptionData.subscription?.maxBranches ||
+                                  1}
                               </span>
                             </p>
                           </div>
@@ -406,8 +414,12 @@ const AdminSettings = () => {
                         {/* progress bar */}
                         <div className="mt-5">
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs text-gray-500">Branch capacity</span>
-                            <span className={`text-xs font-semibold ${usagePercent >= 100 ? 'text-red-500' : usagePercent >= 80 ? 'text-amber-500' : 'text-emerald-600'}`}>
+                            <span className="text-xs text-gray-500">
+                              Branch capacity
+                            </span>
+                            <span
+                              className={`text-xs font-semibold ${usagePercent >= 100 ? "text-red-500" : usagePercent >= 80 ? "text-amber-500" : "text-emerald-600"}`}
+                            >
                               {usagePercent}% used
                             </span>
                           </div>
@@ -415,10 +427,10 @@ const AdminSettings = () => {
                             <div
                               className={`h-full rounded-full transition-all duration-700 ${
                                 usagePercent >= 100
-                                  ? 'bg-gradient-to-r from-red-500 to-rose-500'
+                                  ? "bg-gradient-to-r from-red-500 to-rose-500"
                                   : usagePercent >= 80
-                                  ? 'bg-gradient-to-r from-amber-400 to-orange-500'
-                                  : 'bg-gradient-to-r from-rose-500 to-pink-500'
+                                    ? "bg-gradient-to-r from-amber-400 to-orange-500"
+                                    : "bg-gradient-to-r from-rose-500 to-pink-500"
                               }`}
                               style={{ width: `${usagePercent}%` }}
                             />
@@ -431,9 +443,12 @@ const AdminSettings = () => {
                           <div className="mt-4 bg-amber-100 border border-amber-200 rounded-xl p-3 flex items-start gap-2">
                             <i className="ri-error-warning-line text-amber-600 text-lg mt-0.5 flex-shrink-0"></i>
                             <div>
-                              <p className="text-sm font-semibold text-amber-800">Branch Limit Reached</p>
+                              <p className="text-sm font-semibold text-amber-800">
+                                Branch Limit Reached
+                              </p>
                               <p className="text-xs text-amber-700 mt-0.5">
-                                Upgrade your plan below to add more salon locations.
+                                Upgrade your plan below to add more salon
+                                locations.
                               </p>
                             </div>
                           </div>
@@ -463,31 +478,35 @@ const AdminSettings = () => {
                                 <div
                                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 z-10 transition-all ${
                                     isCurrent
-                                      ? 'bg-gradient-to-br from-rose-500 to-pink-500 border-rose-500 text-white shadow-md shadow-rose-200'
+                                      ? "bg-gradient-to-br from-rose-500 to-pink-500 border-rose-500 text-white shadow-md shadow-rose-200"
                                       : isPast
-                                      ? 'bg-gray-300 border-gray-300 text-gray-500'
-                                      : 'bg-white border-gray-200 text-gray-400'
+                                        ? "bg-gray-300 border-gray-300 text-gray-500"
+                                        : "bg-white border-gray-200 text-gray-400"
                                   }`}
                                 >
                                   {isPast ? (
                                     <i className="ri-check-line text-sm"></i>
                                   ) : isCurrent ? (
-                                    '★'
+                                    "★"
                                   ) : (
                                     idx + 1
                                   )}
                                 </div>
                                 {/* label */}
-                                <p className={`mt-2 text-xs font-semibold text-center ${isCurrent ? 'text-rose-600' : isPast ? 'text-gray-400' : 'text-gray-500'}`}>
+                                <p
+                                  className={`mt-2 text-xs font-semibold text-center ${isCurrent ? "text-rose-600" : isPast ? "text-gray-400" : "text-gray-500"}`}
+                                >
                                   {plan.name}
                                 </p>
                                 <p className="text-xs text-gray-400 text-center">
-                                  {key === 'demo' ? 'Free' : `₹${plan.price}`}
+                                  {key === "demo" ? "Free" : `₹${plan.price}`}
                                 </p>
                               </div>
                               {/* connector line between steps */}
                               {idx < planOrder.length - 1 && (
-                                <div className={`flex-1 h-0.5 mt-4 ${idx < currentPlanIndex ? 'bg-gray-300' : 'bg-gray-100'}`} />
+                                <div
+                                  className={`flex-1 h-0.5 mt-4 ${idx < currentPlanIndex ? "bg-gray-300" : "bg-gray-100"}`}
+                                />
                               )}
                             </React.Fragment>
                           );
@@ -508,10 +527,10 @@ const AdminSettings = () => {
                             key={key}
                             className={`rounded-2xl border-2 p-5 flex flex-col transition-all ${
                               isCurrent
-                                ? 'border-rose-400 bg-gradient-to-b from-rose-50 to-pink-50 shadow-md shadow-rose-100'
+                                ? "border-rose-400 bg-gradient-to-b from-rose-50 to-pink-50 shadow-md shadow-rose-100"
                                 : canUpgrade
-                                ? 'border-gray-200 bg-white hover:border-rose-200 hover:shadow-sm cursor-pointer'
-                                : 'border-gray-100 bg-gray-50 opacity-60'
+                                  ? "border-gray-200 bg-white hover:border-rose-200 hover:shadow-sm cursor-pointer"
+                                  : "border-gray-100 bg-gray-50 opacity-60"
                             }`}
                           >
                             {/* header */}
@@ -522,18 +541,31 @@ const AdminSettings = () => {
                                     ★ Current
                                   </span>
                                 )}
-                                <h4 className="text-base font-bold text-gray-900">{plan.name}</h4>
-                                <p className="text-xs text-gray-400 mt-0.5">{plan.tagline}</p>
+                                <h4 className="text-base font-bold text-gray-900">
+                                  {plan.name}
+                                </h4>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                  {plan.tagline}
+                                </p>
                               </div>
-                              <span className="text-xl opacity-50">{plan.icon}</span>
+                              <span className="text-xl opacity-50">
+                                {plan.icon}
+                              </span>
                             </div>
 
                             {/* price */}
                             <div className="mb-3">
-                              {key === 'demo' ? (
-                                <span className="text-2xl font-bold text-emerald-600">Free</span>
+                              {key === "demo" ? (
+                                <span className="text-2xl font-bold text-emerald-600">
+                                  Free
+                                </span>
                               ) : (
-                                <span className="text-2xl font-bold text-gray-900">₹{plan.price}<span className="text-xs text-gray-400 font-normal">/yr</span></span>
+                                <span className="text-2xl font-bold text-gray-900">
+                                  ₹{plan.price}
+                                  <span className="text-xs text-gray-400 font-normal">
+                                    /yr
+                                  </span>
+                                </span>
                               )}
                             </div>
 
@@ -541,7 +573,8 @@ const AdminSettings = () => {
                             <div className="flex items-center gap-2 mb-4 p-2.5 bg-white rounded-lg border border-gray-100">
                               <i className="ri-store-2-line text-rose-400 text-sm"></i>
                               <span className="text-sm text-gray-700 font-medium">
-                                {plan.maxBranches} Branch{plan.maxBranches > 1 ? 'es' : ''}
+                                {plan.maxBranches} Branch
+                                {plan.maxBranches > 1 ? "es" : ""}
                               </span>
                             </div>
 
@@ -555,7 +588,7 @@ const AdminSettings = () => {
                                 {loadingSubscription ? (
                                   <i className="ri-loader-4-line animate-spin"></i>
                                 ) : (
-                                  'Upgrade →'
+                                  "Upgrade →"
                                 )}
                               </button>
                             ) : (
@@ -563,7 +596,7 @@ const AdminSettings = () => {
                                 disabled
                                 className="mt-auto w-full py-2.5 rounded-xl text-sm font-bold cursor-not-allowed bg-gray-100 text-gray-400"
                               >
-                                {isCurrent ? 'Active Plan' : 'Lower Tier'}
+                                {isCurrent ? "Active Plan" : "Lower Tier"}
                               </button>
                             )}
                           </div>
@@ -575,11 +608,21 @@ const AdminSettings = () => {
                     <div className="mt-6 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
                       <i className="ri-information-line text-blue-500 text-xl mt-0.5 flex-shrink-0"></i>
                       <div>
-                        <p className="text-sm font-semibold text-blue-900 mb-1">Plan Upgrade Information</p>
+                        <p className="text-sm font-semibold text-blue-900 mb-1">
+                          Plan Upgrade Information
+                        </p>
                         <ul className="text-xs text-blue-700 space-y-0.5">
-                          <li>• Upgrades are instant and take effect immediately</li>
-                          <li>• You can only upgrade to higher plans (no downgrades)</li>
-                          <li>• No payment gateway integrated yet — upgrades are free for testing</li>
+                          <li>
+                            • Upgrades are instant and take effect immediately
+                          </li>
+                          <li>
+                            • You can only upgrade to higher plans (no
+                            downgrades)
+                          </li>
+                          <li>
+                            • No payment gateway integrated yet — upgrades are
+                            free for testing
+                          </li>
                         </ul>
                       </div>
                     </div>
@@ -643,12 +686,18 @@ const AdminSettings = () => {
                           <i className={`${item.icon} text-white text-lg`}></i>
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{item.label}</p>
+                          <p className="font-semibold text-gray-900">
+                            {item.label}
+                          </p>
                           <p className="text-xs text-gray-600">{item.desc}</p>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          defaultChecked
+                        />
                         <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
                       </label>
                     </div>
@@ -680,16 +729,34 @@ const AdminSettings = () => {
                     </h3>
                     <div className="space-y-4">
                       <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-700">Current Password</label>
-                        <input type="password" placeholder="Enter current password" className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                        <label className="text-sm font-semibold text-gray-700">
+                          Current Password
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="Enter current password"
+                          className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                        />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-700">New Password</label>
-                        <input type="password" placeholder="Enter new password" className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                        <label className="text-sm font-semibold text-gray-700">
+                          New Password
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="Enter new password"
+                          className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                        />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-700">Confirm Password</label>
-                        <input type="password" placeholder="Confirm new password" className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none" />
+                        <label className="text-sm font-semibold text-gray-700">
+                          Confirm Password
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="Confirm new password"
+                          className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none"
+                        />
                       </div>
                       <button className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:from-blue-600 hover:to-cyan-600 transition-all">
                         Update Password
@@ -702,7 +769,9 @@ const AdminSettings = () => {
                       <i className="ri-shield-check-line text-blue-500"></i>
                       Two-Factor Authentication
                     </h3>
-                    <p className="text-sm text-gray-600 mb-4">Add an extra layer of security to your account</p>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Add an extra layer of security to your account
+                    </p>
                     <button className="px-6 py-3 bg-white border-2 border-blue-500 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-all">
                       Enable 2FA
                     </button>
@@ -733,16 +802,41 @@ const AdminSettings = () => {
                       Business Hours
                     </h3>
                     <div className="space-y-3">
-                      {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map((day) => (
-                        <div key={day} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      {[
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday",
+                      ].map((day) => (
+                        <div
+                          key={day}
+                          className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                        >
                           <div className="flex items-center gap-3 sm:w-40">
-                            <input type="checkbox" className="w-5 h-5 text-green-500 rounded focus:ring-green-200" defaultChecked={day !== "Sunday"} />
-                            <span className="font-semibold text-gray-900">{day}</span>
+                            <input
+                              type="checkbox"
+                              className="w-5 h-5 text-green-500 rounded focus:ring-green-200"
+                              defaultChecked={day !== "Sunday"}
+                            />
+                            <span className="font-semibold text-gray-900">
+                              {day}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 flex-1">
-                            <input type="time" defaultValue="09:00" className="rounded-lg border-2 border-gray-200 bg-white p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none" />
+                            <input
+                              type="time"
+                              defaultValue="09:00"
+                              className="rounded-lg border-2 border-gray-200 bg-white p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
+                            />
                             <span className="text-gray-500">to</span>
-                            <input type="time" defaultValue="18:00" className="rounded-lg border-2 border-gray-200 bg-white p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none" />
+                            <input
+                              type="time"
+                              defaultValue="18:00"
+                              className="rounded-lg border-2 border-gray-200 bg-white p-2 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none"
+                            />
                           </div>
                         </div>
                       ))}
@@ -756,12 +850,24 @@ const AdminSettings = () => {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-700">Booking Buffer (minutes)</label>
-                        <input type="number" defaultValue="15" className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none" />
+                        <label className="text-sm font-semibold text-gray-700">
+                          Booking Buffer (minutes)
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue="15"
+                          className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none"
+                        />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <label className="text-sm font-semibold text-gray-700">Max Advance Booking (days)</label>
-                        <input type="number" defaultValue="30" className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none" />
+                        <label className="text-sm font-semibold text-gray-700">
+                          Max Advance Booking (days)
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue="30"
+                          className="rounded-xl border-2 border-gray-200 bg-gray-50 p-3 text-gray-900 font-medium focus:bg-white focus:border-green-500 focus:ring-4 focus:ring-green-100 transition-all outline-none"
+                        />
                       </div>
                     </div>
                   </div>

@@ -24,19 +24,20 @@ const ownerSchema = new mongoose.Schema(
     subscription: {
       plan: {
         type: String,
-        enum: ["basic", "standard", "premium"],
-        default: "basic",
+        enum: [null, "demo", "basic", "standard", "premium"],
+        default: null,
       },
       maxBranches: {
         type: Number,
-        default: 1,
+        default: 0,
       },
       startDate: {
         type: Date,
-        default: Date.now,
       },
-      // You can add expiryDate later when implementing payment
-      // expiryDate: { type: Date }
+      trialEndDate: {
+        type: Date,
+        default: null,
+      },
     },
     // 🆕 Salon Settings
     salonSettings: {
@@ -47,7 +48,7 @@ const ownerSchema = new mongoose.Schema(
       currency: { type: String, default: "INR" },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Automatically hash password before saving to DB

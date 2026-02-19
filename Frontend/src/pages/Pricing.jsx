@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Certifications from "../components/Certifications";
+import { useAuth } from "../context/AuthContext";
 
 const Pricing = () => {
   const [currentPlan, setCurrentPlan] = useState(null);
+  const [upgrading, setUpgrading] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated, fetchSubscription } = useAuth();
 
   useEffect(() => {
     axios
@@ -11,6 +16,29 @@ const Pricing = () => {
       .then((res) => setCurrentPlan(res.data?.subscription?.plan || null))
       .catch(() => setCurrentPlan(null));
   }, []);
+
+  const handleSelectPlan = async (planKey) => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    try {
+      setUpgrading(true);
+      const res = await axios.post(
+        "/api/subscriptions/upgrade",
+        { newPlan: planKey },
+        { withCredentials: true },
+      );
+      alert(res.data.message);
+      setCurrentPlan(planKey);
+      if (fetchSubscription) await fetchSubscription();
+      navigate("/admin/dashboard");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to select plan");
+    } finally {
+      setUpgrading(false);
+    }
+  };
 
   const plans = [
     {
@@ -78,7 +106,10 @@ const Pricing = () => {
   ];
 
   return (
-    <div className="bg-[#0d0d0f] w-full overflow-x-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div
+      className="bg-[#0d0d0f] w-full overflow-x-hidden"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300&display=swap');
 
@@ -147,29 +178,35 @@ const Pricing = () => {
         <div className="relative z-10 text-center px-4 py-20">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/20 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-            <span className="tag-pill text-rose-400">Simple, transparent pricing</span>
+            <span className="tag-pill text-rose-400">
+              Simple, transparent pricing
+            </span>
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 leading-tight" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>
+          <h1
+            className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 leading-tight"
+            style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}
+          >
             Plans &{" "}
             <span className="italic font-light text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-300">
               Pricing
             </span>
           </h1>
           <p className="text-base sm:text-lg text-white/50 max-w-lg mx-auto font-light">
-            Choose the perfect plan to manage your salon business — scale as you grow, pay only for what you need.
+            Choose the perfect plan to manage your salon business — scale as you
+            grow, pay only for what you need.
           </p>
         </div>
       </div>
 
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20 pt-4">
-
         {currentPlan && (
           <div className="flex items-center justify-center mb-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20">
               <span className="text-amber-400 text-sm">👑</span>
               <span className="text-amber-300 text-sm font-medium">
-                You're on the <span className="font-bold capitalize">{currentPlan}</span> plan
+                You're on the{" "}
+                <span className="font-bold capitalize">{currentPlan}</span> plan
               </span>
             </div>
           </div>
@@ -187,10 +224,10 @@ const Pricing = () => {
                   isCurrent
                     ? "current-glow bg-gradient-to-b from-amber-950/30 to-[#0d0d0f]"
                     : isPopular
-                    ? "rose-glow bg-gradient-to-b from-rose-950/30 to-[#0d0d0f]"
-                    : plan.isDemo
-                    ? "emerald-glow bg-gradient-to-b from-emerald-950/20 to-[#0d0d0f]"
-                    : "shine-border bg-gradient-to-b from-white/[0.03] to-transparent"
+                      ? "rose-glow bg-gradient-to-b from-rose-950/30 to-[#0d0d0f]"
+                      : plan.isDemo
+                        ? "emerald-glow bg-gradient-to-b from-emerald-950/20 to-[#0d0d0f]"
+                        : "shine-border bg-gradient-to-b from-white/[0.03] to-transparent"
                 }`}
               >
                 {/* Badges */}
@@ -217,23 +254,42 @@ const Pricing = () => {
 
                 {/* Plan info */}
                 <div className="mb-5">
-                  <h3 className="text-xl font-semibold text-white mb-1" style={{ fontFamily: "'Fraunces', serif" }}>
+                  <h3
+                    className="text-xl font-semibold text-white mb-1"
+                    style={{ fontFamily: "'Fraunces', serif" }}
+                  >
                     {plan.name}
                   </h3>
-                  <p className="text-white/35 text-xs font-light mb-4">{plan.tagline}</p>
+                  <p className="text-white/35 text-xs font-light mb-4">
+                    {plan.tagline}
+                  </p>
 
                   {plan.isDemo ? (
                     <div className="flex items-end gap-2 mb-1">
-                      <span className="text-4xl font-bold text-emerald-400" style={{ fontFamily: "'Fraunces', serif" }}>Free</span>
+                      <span
+                        className="text-4xl font-bold text-emerald-400"
+                        style={{ fontFamily: "'Fraunces', serif" }}
+                      >
+                        Free
+                      </span>
                     </div>
                   ) : (
                     <div className="flex items-end gap-1.5 mb-1">
-                      <span className="text-sm text-white/40 self-start mt-2">₹</span>
-                      <span className="text-4xl font-bold text-white" style={{ fontFamily: "'Fraunces', serif" }}>{plan.price}</span>
+                      <span className="text-sm text-white/40 self-start mt-2">
+                        ₹
+                      </span>
+                      <span
+                        className="text-4xl font-bold text-white"
+                        style={{ fontFamily: "'Fraunces', serif" }}
+                      >
+                        {plan.price}
+                      </span>
                     </div>
                   )}
                   <p className="text-white/30 text-xs">
-                    {plan.isDemo ? `${plan.trialDays} days • no credit card` : "per user / year"}
+                    {plan.isDemo
+                      ? `${plan.trialDays} days • no credit card`
+                      : "per user / year"}
                   </p>
                 </div>
 
@@ -244,27 +300,39 @@ const Pricing = () => {
                 <ul className="space-y-3 mb-6 flex-1">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-2.5">
-                      <span className={`mt-0.5 text-sm flex-shrink-0 ${plan.isDemo ? 'text-emerald-400' : isPopular || isCurrent ? 'text-rose-400' : 'text-white/40'}`}>
+                      <span
+                        className={`mt-0.5 text-sm flex-shrink-0 ${plan.isDemo ? "text-emerald-400" : isPopular || isCurrent ? "text-rose-400" : "text-white/40"}`}
+                      >
                         ✓
                       </span>
-                      <span className="text-white/60 text-sm leading-snug">{feature}</span>
+                      <span className="text-white/60 text-sm leading-snug">
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>
 
                 {/* CTA */}
                 <button
+                  onClick={() => !isCurrent && handleSelectPlan(plan.key)}
+                  disabled={isCurrent || upgrading}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
                     isCurrent
                       ? "bg-amber-500/15 text-amber-300 border border-amber-500/25 cursor-default"
                       : plan.isDemo
-                      ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-lg shadow-emerald-500/20"
-                      : isPopular
-                      ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-400 hover:to-pink-400 shadow-lg shadow-rose-500/20"
-                      : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white"
-                  }`}
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:from-emerald-400 hover:to-teal-400 shadow-lg shadow-emerald-500/20"
+                        : isPopular
+                          ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-400 hover:to-pink-400 shadow-lg shadow-rose-500/20"
+                          : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white"
+                  } disabled:opacity-50`}
                 >
-                  {isCurrent ? "Current Plan" : plan.isDemo ? "Start Free Trial" : "Get Started"}
+                  {isCurrent
+                    ? "Current Plan"
+                    : upgrading
+                      ? "Processing..."
+                      : plan.isDemo
+                        ? "Start Free Trial"
+                        : "Get Started"}
                 </button>
               </div>
             );
@@ -272,7 +340,8 @@ const Pricing = () => {
         </div>
 
         <p className="text-center text-white/25 text-sm mt-8">
-          All paid plans include a 14-day free trial. No credit card required to start.
+          All paid plans include a 14-day free trial. No credit card required to
+          start.
         </p>
       </div>
 
@@ -280,13 +349,18 @@ const Pricing = () => {
       <section className="border-t border-white/5 py-16 sm:py-20 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3" style={{ fontFamily: "'Fraunces', serif" }}>
+            <h2
+              className="text-3xl sm:text-4xl font-bold text-white mb-3"
+              style={{ fontFamily: "'Fraunces', serif" }}
+            >
               Got{" "}
               <span className="italic font-light text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-300">
                 questions?
               </span>
             </h2>
-            <p className="text-white/35 text-sm">Everything you need to know about our plans.</p>
+            <p className="text-white/35 text-sm">
+              Everything you need to know about our plans.
+            </p>
           </div>
 
           <div className="space-y-3">
@@ -309,7 +383,9 @@ const Pricing = () => {
               },
             ].map((faq, i) => (
               <div key={i} className="faq-card p-5 rounded-xl">
-                <h4 className="font-semibold text-white/90 mb-1.5 text-sm sm:text-base">{faq.q}</h4>
+                <h4 className="font-semibold text-white/90 mb-1.5 text-sm sm:text-base">
+                  {faq.q}
+                </h4>
                 <p className="text-white/40 text-sm leading-relaxed">{faq.a}</p>
               </div>
             ))}
@@ -324,14 +400,18 @@ const Pricing = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-rose-500/10 blur-3xl" />
 
         <div className="relative z-10 max-w-2xl mx-auto text-center px-4">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4" style={{ fontFamily: "'Fraunces', serif" }}>
+          <h2
+            className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
             Ready to{" "}
             <span className="italic font-light text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-pink-300">
               get started?
             </span>
           </h2>
           <p className="text-white/40 text-sm sm:text-base mb-8 max-w-md mx-auto font-light">
-            Join thousands of salon owners who trust us to manage their business operations seamlessly.
+            Join thousands of salon owners who trust us to manage their business
+            operations seamlessly.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">

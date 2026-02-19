@@ -5,10 +5,13 @@ const router = express.Router();
 
 // Plan configurations
 const PLANS = {
+  demo: { maxBranches: 1, price: 0, trialDuration: 2 * 60 * 1000 }, // 2 minutes for testing
   basic: { maxBranches: 1, price: 29 },
   standard: { maxBranches: 5, price: 99 },
   premium: { maxBranches: 10, price: 199 },
 };
+
+const PLAN_ORDER = [null, "demo", "basic", "standard", "premium"];
 
 /* Get current subscription details */
 router.get("/current", async (req, res) => {
@@ -20,7 +23,7 @@ router.get("/current", async (req, res) => {
     }
 
     const owner = await Owner.findById(ownerId).select("subscription branches");
-    
+
     if (!owner) {
       return res.status(404).json({ message: "Owner not found" });
     }
@@ -28,17 +31,28 @@ router.get("/current", async (req, res) => {
     // Count current branches
     const currentBranchCount = owner.branches.length;
 
+    // Compute trial status
+    const plan = owner.subscription?.plan || null;
+    const hasPlan = plan !== null;
+    let isTrialExpired = false;
+
+    if (plan === "demo" && owner.subscription?.trialEndDate) {
+      isTrialExpired = new Date() > new Date(owner.subscription.trialEndDate);
+    }
+
     res.json({
       subscription: owner.subscription,
       currentBranchCount,
       availablePlans: PLANS,
+      hasPlan,
+      isTrialExpired,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-/* Upgrade subscription plan */
+/* Upgrade / select subscription plan */
 router.post("/upgrade", async (req, res) => {
   try {
     const ownerId = req.session.ownerId;
@@ -59,27 +73,43 @@ router.post("/upgrade", async (req, res) => {
     }
 
     // Check if it's actually an upgrade
-    const currentPlan = owner.subscription?.plan || "basic";
-    const planOrder = ["basic", "standard", "premium"];
-    
-    if (planOrder.indexOf(newPlan) <= planOrder.indexOf(currentPlan)) {
-      return res.status(400).json({ 
-        message: "You can only upgrade to a higher plan. Downgrades are not supported." 
+    const currentPlan = owner.subscription?.plan || null;
+    const currentIndex = PLAN_ORDER.indexOf(currentPlan);
+    const newIndex = PLAN_ORDER.indexOf(newPlan);
+
+    if (newIndex <= currentIndex) {
+      return res.status(400).json({
+        message:
+          "You can only upgrade to a higher plan. Downgrades are not supported.",
       });
     }
 
-    // Update subscription
-    owner.subscription = {
+    // Build subscription update
+    const subscriptionUpdate = {
       plan: newPlan,
       maxBranches: PLANS[newPlan].maxBranches,
       startDate: new Date(),
     };
 
+    // If demo plan, set trialEndDate (2 minutes for testing)
+    if (newPlan === "demo") {
+      subscriptionUpdate.trialEndDate = new Date(
+        Date.now() + PLANS.demo.trialDuration,
+      );
+    } else {
+      // Paid plan — clear trial end date
+      subscriptionUpdate.trialEndDate = null;
+    }
+
+    owner.subscription = subscriptionUpdate;
     await owner.save();
 
     res.json({
       success: true,
-      message: `Successfully upgraded to ${newPlan} plan!`,
+      message:
+        newPlan === "demo"
+          ? "Demo plan activated! Your trial starts now."
+          : `Successfully upgraded to ${newPlan} plan!`,
       subscription: owner.subscription,
     });
   } catch (err) {
