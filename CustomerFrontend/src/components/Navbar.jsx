@@ -82,7 +82,7 @@ const Navbar = () => {
             </Link>
 
             {/* Desktop Links */}
-            <div className="hidden md:flex items-center gap-7">
+            <div className="hidden md:flex! items-center gap-7">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -99,7 +99,7 @@ const Navbar = () => {
             </div>
 
             {/* CTA */}
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden md:flex! items-center gap-3">
               <Link
                 to="/login"
                 className="text-sm text-white/55 hover:text-white font-medium transition-colors"
