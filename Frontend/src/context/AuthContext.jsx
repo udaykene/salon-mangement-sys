@@ -60,12 +60,23 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // 2. Owner Registration
-  const register = async ({ name, email, phone, password }) => {
+  const register = async ({
+    name,
+    email,
+    phone,
+    password,
+    confirmPassword,
+    agreeTerms,
+    newsletter = true,
+  }) => {
     const res = await axios.post("/auth/register", {
       name,
       email,
       phone,
       password,
+      confirmPassword,
+      agreeTerms,
+      newsletter,
     });
 
     if (res.data.success) {

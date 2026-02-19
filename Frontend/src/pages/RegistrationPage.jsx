@@ -39,6 +39,9 @@ const SalonRegister = () => {
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        agreeTerms: formData.agreeTerms,
+        newsletter: formData.newsletter,
       });
 
       alert(res.message || "Registration successful");
@@ -126,7 +129,7 @@ const SalonRegister = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder="********"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
                     required
                   />
@@ -151,7 +154,7 @@ const SalonRegister = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    placeholder="••••••••"
+                    placeholder="********"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 outline-none transition-all"
                     required
                   />
