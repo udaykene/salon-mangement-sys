@@ -18,6 +18,7 @@ import ClientRouter from "./src/routes/clientRoutes.js";
 import ReportRouter from "./src/routes/reportRoutes.js";
 import ExpenseRouter from "./src/routes/expenseRoutes.js";
 import InventoryRouter from "./src/routes/inventory.routes.js";
+import CustomerAuthRouter from "./src/routes/CustomerAuthRouter.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -67,6 +68,7 @@ app.use("/api/clients", ClientRouter);
 app.use("/api/reports", ReportRouter);
 app.use("/api/expenses", ExpenseRouter);
 app.use("/api/inventory", InventoryRouter);
+app.use("/customer-auth", CustomerAuthRouter);
 
 app.get("/ping", (req, res) => {
   res.send("PONG");
