@@ -167,7 +167,7 @@ const AddStaffForm = ({
                 <option value="">Select branch</option>
                 {branches.map((branch) => (
                   <option key={branch._id} value={branch._id}>
-                    {branch.name}
+                    {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
                   </option>
                 ))}
               </select>

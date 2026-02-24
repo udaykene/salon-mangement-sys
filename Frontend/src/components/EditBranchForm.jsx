@@ -34,6 +34,17 @@ const EditBranchForm = ({
         required
       />
 
+      <select
+        name="branchType"
+        value={formData.branchType}
+        onChange={onChange}
+        className="w-full border rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-sm sm:text-base focus:ring-2 focus:ring-rose-400 outline-none bg-white"
+        required
+      >
+        <option value="salon">Salon</option>
+        <option value="spa">Spa</option>
+      </select>
+
       {/* Address */}
       <input
         name="address"

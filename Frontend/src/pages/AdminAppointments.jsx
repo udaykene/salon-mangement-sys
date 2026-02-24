@@ -174,7 +174,7 @@ const SalonAdminAppointments = () => {
               <option value="all">All Branches</option>
               {branches.map((b) => (
                 <option key={b._id} value={b._id}>
-                  {b.name}
+                  {b.name} ({b.branchType === "spa" ? "Spa" : "Salon"})
                 </option>
               ))}
             </select>

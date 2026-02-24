@@ -617,7 +617,7 @@ const AdminAttendance = () => {
                 <option value="all">All Branches</option>
                 {branches.map((branch) => (
                   <option key={branch._id} value={branch._id}>
-                    {branch.name}
+                    {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
                   </option>
                 ))}
               </select>

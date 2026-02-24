@@ -208,7 +208,7 @@ const SalonAdminClients = () => {
                 <option value="all">All Branches</option>
                 {branches.map((branch) => (
                   <option key={branch._id} value={branch._id}>
-                    {branch.name}
+                    {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
                   </option>
                 ))}
               </select>
@@ -448,7 +448,7 @@ const SalonAdminClients = () => {
                     <option value="">Select Branch</option>
                     {branches.map((branch) => (
                       <option key={branch._id} value={branch._id}>
-                        {branch.name}
+                        {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
                       </option>
                     ))}
                   </select>

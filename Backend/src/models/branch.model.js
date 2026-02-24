@@ -10,6 +10,12 @@ const branchSchema = new mongoose.Schema(
     },
 
     name: { type: String, required: true },
+    branchType: {
+      type: String,
+      enum: ["salon", "spa"],
+      default: "salon",
+      required: true,
+    },
 
     address: String,
     city: String,

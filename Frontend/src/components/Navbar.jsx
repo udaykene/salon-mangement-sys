@@ -182,7 +182,9 @@ const Navbar = () => {
                         className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-full shadow-md shadow-rose-500/30 hover:from-rose-600 hover:to-pink-600 transition-all flex items-center gap-2"
                       >
                         <i className="ri-building-line"></i>
-                        {currentBranch ? currentBranch.name : "Switch Branch"}
+                        {currentBranch
+                          ? `${currentBranch.name} (${currentBranch.branchType === "spa" ? "Spa" : "Salon"})`
+                          : "Switch Branch"}
                         <i
                           className={`ri-arrow-down-s-line transition-transform ${
                             branchDropdownOpen ? "rotate-180" : ""
@@ -202,7 +204,9 @@ const Navbar = () => {
                                   : ""
                               }`}
                             >
-                              <span className="flex-1">{branch.name}</span>
+                              <span className="flex-1">
+                                {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
+                              </span>
                               {currentBranch?._id === branch._id && (
                                 <i className="ri-check-line text-rose-600"></i>
                               )}
@@ -218,6 +222,9 @@ const Navbar = () => {
                     <div className="px-5 py-2.5 bg-rose-100 text-rose-700 font-semibold rounded-full flex items-center gap-2">
                       <i className="ri-building-line"></i>
                       {receptionistBranch.name}
+                      {receptionistBranch.branchType
+                        ? ` (${receptionistBranch.branchType === "spa" ? "Spa" : "Salon"})`
+                        : ""}
                     </div>
                   )}
 
@@ -358,7 +365,7 @@ const Navbar = () => {
                       >
                         {branches.map((branch) => (
                           <option key={branch._id} value={branch._id}>
-                            {branch.name}
+                            {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
                           </option>
                         ))}
                       </select>

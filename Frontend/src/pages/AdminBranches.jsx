@@ -30,6 +30,7 @@ const AdminBranches = () => {
 
   const [formData, setFormData] = useState({
     name: "",
+    branchType: "salon",
     address: "",
     city: "",
     state: "",
@@ -66,6 +67,7 @@ const AdminBranches = () => {
     if (showAddModal) {
       setFormData({
         name: "",
+        branchType: "salon",
         address: "",
         city: "",
         state: "",
@@ -85,6 +87,7 @@ const AdminBranches = () => {
     if (showEditModal && editingBranch) {
       setFormData({
         name: editingBranch.name || "",
+        branchType: editingBranch.branchType || "salon",
         address: editingBranch.address || "",
         city: editingBranch.city || "",
         state: editingBranch.state || "",
@@ -154,6 +157,7 @@ const AdminBranches = () => {
       // Reset form
       setFormData({
         name: "",
+        branchType: "salon",
         address: "",
         city: "",
         state: "",
@@ -192,6 +196,7 @@ const AdminBranches = () => {
     setEditingBranch(branch);
     setFormData({
       name: branch.name || "",
+      branchType: branch.branchType || "salon",
       address: branch.address || "",
       city: branch.city || "",
       state: branch.state || "",
@@ -307,7 +312,7 @@ const AdminBranches = () => {
               Branch Management
             </h1>
             <p className="text-gray-600">
-              Manage all your salon locations and branches
+              Manage all your salon and spa locations
             </p>
           </div>
 
@@ -327,6 +332,7 @@ const AdminBranches = () => {
               onClick={() => {
                 setFormData({
                   name: "",
+                  branchType: "salon",
                   address: "",
                   city: "",
                   state: "",
@@ -395,7 +401,7 @@ const AdminBranches = () => {
                 Branch Management
               </h1>
               <p className="text-gray-600">
-                Manage all your salon locations and branches
+                Manage all your salon and spa locations
               </p>
             </div>
             <button
@@ -442,7 +448,7 @@ const AdminBranches = () => {
                           value={branch._id}
                           className="text-gray-900 font-semibold"
                         >
-                          {branch.name}
+                          {branch.name} ({branch.branchType === "spa" ? "Spa" : "Salon"})
                         </option>
                       ))}
                     </select>
@@ -462,6 +468,10 @@ const AdminBranches = () => {
                 <span className="flex items-center gap-2">
                   <i className="ri-checkbox-circle-line"></i>
                   {currentBranch.isActive ? "Active" : "Inactive"}
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="ri-store-2-line"></i>
+                  {currentBranch.branchType === "spa" ? "Spa" : "Salon"}
                 </span>
               </div>
             </div>
@@ -540,9 +550,14 @@ const AdminBranches = () => {
               <div className="p-6">
                 {/* Header with Title and 3-dot menu */}
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-xl font-bold text-gray-900">
-                    {branch.name}
-                  </h3>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {branch.name}
+                    </h3>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mt-1">
+                      {branch.branchType === "spa" ? "Spa" : "Salon"}
+                    </p>
+                  </div>
 
                   {/* 3-dot Menu */}
                   <div className="relative">

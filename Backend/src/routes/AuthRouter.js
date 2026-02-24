@@ -145,7 +145,7 @@ router.get("/me", async (req, res) => {
     if (req.session.role === "receptionist") {
       const staff = await Staff.findById(req.session.staffId).populate(
         "branchId",
-        "name",
+        "name branchType",
       );
 
       return res.json({
