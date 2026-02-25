@@ -6,6 +6,23 @@ import { validateBranch } from "../middlewares/BranchValidation.js";
 
 const router = express.Router();
 
+/* PUBLIC: List active branches by type (no auth needed) */
+router.get("/public", async (req, res) => {
+  try {
+    const { type } = req.query;
+    const filter = { isActive: true };
+    if (type && ["salon", "spa"].includes(type)) {
+      filter.branchType = type;
+    }
+    const branches = await Branch.find(filter).select(
+      "name branchType address city state phone email openingTime closingTime workingDays"
+    );
+    res.json(branches);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 /* Create branch - Inject ownerId from session */
 router.post("/", validateBranch, async (req, res) => {
   try {

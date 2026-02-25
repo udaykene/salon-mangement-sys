@@ -11,6 +11,8 @@ import BookAppointmentPage from "./pages/BookAppointment";
 import SignUpPage from "./pages/SignUp";
 import SignInPage from "./pages/SignIn";
 import ProfilePage from "./pages/Profile";
+import SalonsPage from "./pages/Salons";
+import SpasPage from "./pages/Spas";
 
 // Layout wrapper that includes Navbar + Footer
 const Layout = ({ children }) => (
@@ -39,6 +41,22 @@ const App = () => {
             element={
               <Layout>
                 <ServicesPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/salons"
+            element={
+              <Layout>
+                <SalonsPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/spas"
+            element={
+              <Layout>
+                <SpasPage />
               </Layout>
             }
           />
