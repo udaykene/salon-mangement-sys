@@ -13,6 +13,7 @@ import SignInPage from "./pages/SignIn";
 import ProfilePage from "./pages/Profile";
 import SalonsPage from "./pages/Salons";
 import SpasPage from "./pages/Spas";
+import BranchDetail from "./pages/BranchDetail";
 
 // Layout wrapper that includes Navbar + Footer
 const Layout = ({ children }) => (
@@ -53,10 +54,26 @@ const App = () => {
             }
           />
           <Route
+            path="/salons/:id"
+            element={
+              <Layout>
+                <BranchDetail />
+              </Layout>
+            }
+          />
+          <Route
             path="/spas"
             element={
               <Layout>
                 <SpasPage />
+              </Layout>
+            }
+          />
+          <Route
+            path="/spas/:id"
+            element={
+              <Layout>
+                <BranchDetail />
               </Layout>
             }
           />

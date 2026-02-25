@@ -272,7 +272,7 @@ const SpasPage = () => {
                 {/* Divider + Explore */}
                 <div className="w-full h-px bg-white/5 mt-5 mb-4" />
                 <Link
-                  to="#"
+                  to={`/spas/${spa._id}`}
                   className="explore-btn w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 hover:text-rose-300 text-sm font-semibold rounded-xl transition-all"
                 >
                   Explore

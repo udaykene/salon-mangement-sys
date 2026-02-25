@@ -5,6 +5,23 @@ import Branch from "../models/branch.model.js";
 import { Appointment } from "../models/Appointment.js";
 import Service from "../models/services.model.js";
 
+/* PUBLIC: Get active staff for a branch (no auth) */
+router.get("/public", async (req, res) => {
+  try {
+    const { branchId } = req.query;
+    if (!branchId)
+      return res
+        .status(400)
+        .json({ success: false, message: "branchId required" });
+    const staff = await Staff.find({ branchId, status: "active" }).select(
+      "name roleTitle specialization workingDays workingHours",
+    );
+    res.json({ success: true, staff });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // GET: Fetch all staff with availability status
 router.get("/availability", async (req, res) => {
   try {
@@ -16,14 +33,20 @@ router.get("/availability", async (req, res) => {
     const { branchId, date, time } = req.query;
     // Default to current date/time if not provided
     const checkDate = date ? new Date(date) : new Date();
-    const checkTimeStr = time || checkDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const checkTimeStr =
+      time ||
+      checkDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
 
     // Helper to parse "HH:MM AM/PM" to minutes from midnight
     const parseTime = (timeStr) => {
-      const [time, modifier] = timeStr.split(' ');
-      let [hours, minutes] = time.split(':');
-      if (hours === '12') hours = '00';
-      if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+      const [time, modifier] = timeStr.split(" ");
+      let [hours, minutes] = time.split(":");
+      if (hours === "12") hours = "00";
+      if (modifier === "PM") hours = parseInt(hours, 10) + 12;
       return parseInt(hours, 10) * 60 + parseInt(minutes, 10);
     };
 
@@ -40,10 +63,10 @@ router.get("/availability", async (req, res) => {
 
     // 2. Determine Branch Filter
     // REVERTED: Strict isolation for Receptionist based on TL feedback.
-    if (role && role.toLowerCase() === 'receptionist') {
+    if (role && role.toLowerCase() === "receptionist") {
       // Force the query to use the logged-in user's branch (which we can get from session or DB lookup above if we did that)
       // We'll rely on session/stored branchId. Ideally we trust req.session.branchId or fetch it.
-      // For safety, let's use the one from session. 
+      // For safety, let's use the one from session.
       query.branchId = sessionBranchId;
 
       // Note: We ignore req.query.branchId for Receptionists now.
@@ -55,8 +78,8 @@ router.get("/availability", async (req, res) => {
     }
 
     const appointmentQuery = {
-      date: checkDate.toISOString().split('T')[0],
-      status: { $nin: ["Cancelled", "Completed"] }
+      date: checkDate.toISOString().split("T")[0],
+      status: { $nin: ["Cancelled", "Completed"] },
     };
     if (query.branchId) {
       appointmentQuery.branchId = query.branchId;
@@ -65,7 +88,7 @@ router.get("/availability", async (req, res) => {
     const [staffMembers, appointments, services] = await Promise.all([
       Staff.find(query),
       Appointment.find(appointmentQuery),
-      Service.find({ branchId: query.branchId || branchId })
+      Service.find({ branchId: query.branchId || branchId }),
     ]);
 
     // Create a map of service duration
@@ -75,19 +98,28 @@ router.get("/availability", async (req, res) => {
     }, {});
 
     const currentMinutes = parseTime(checkTimeStr);
-    const dayName = checkDate.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue...
+    const dayName = checkDate.toLocaleDateString("en-US", { weekday: "short" }); // Mon, Tue...
 
-    const staffWithStatus = staffMembers.map(staff => {
+    const staffWithStatus = staffMembers.map((staff) => {
       // 0. Check Stored Status (Priority)
-      if (staff.status && staff.status !== 'active') {
-        return { ...staff.toObject(), currentStatus: staff.status, nextAvailable: "N/A" };
+      if (staff.status && staff.status !== "active") {
+        return {
+          ...staff.toObject(),
+          currentStatus: staff.status,
+          nextAvailable: "N/A",
+        };
       }
 
       // FIX: Handle "Receptionist" default roleTitle masking actual role (e.g. Barber)
       // If role is specific (not "staff") and roleTitle is default "Receptionist", prefer role.
       let displayRole = staff.roleTitle;
       const actualRole = staff.role;
-      if (actualRole && actualRole.toLowerCase() !== "staff" && displayRole === "Receptionist" && actualRole !== "Receptionist") {
+      if (
+        actualRole &&
+        actualRole.toLowerCase() !== "staff" &&
+        displayRole === "Receptionist" &&
+        actualRole !== "Receptionist"
+      ) {
         displayRole = actualRole;
       }
 
@@ -100,12 +132,16 @@ router.get("/availability", async (req, res) => {
           ...staff.toObject(),
           roleTitle: displayRole, // Override with corrected value
           currentStatus: "off-duty",
-          nextAvailable: "Next Working Day"
+          nextAvailable: "Next Working Day",
         };
       }
 
       // 2. Check Working Hours
-      if (staff.workingHours && staff.workingHours.start && staff.workingHours.end) {
+      if (
+        staff.workingHours &&
+        staff.workingHours.start &&
+        staff.workingHours.end
+      ) {
         const startMin = parseTime(staff.workingHours.start);
         const endMin = parseTime(staff.workingHours.end);
         if (currentMinutes < startMin || currentMinutes > endMin) {
@@ -113,17 +149,17 @@ router.get("/availability", async (req, res) => {
             ...staff.toObject(),
             roleTitle: displayRole,
             currentStatus: "off-duty",
-            nextAvailable: staff.workingHours.start
+            nextAvailable: staff.workingHours.start,
           };
         }
       }
 
       // 3. Check Appointments
-      const staffApps = appointments.filter(app => {
+      const staffApps = appointments.filter((app) => {
         return app.staff === staff._id.toString() || app.staff === staff.name;
       });
 
-      const busyApp = staffApps.find(app => {
+      const busyApp = staffApps.find((app) => {
         const appStart = parseTime(app.time);
         const duration = serviceDurations[app.service] || 30; // fallback 30 mins
         const appEnd = appStart + duration;
@@ -139,16 +175,16 @@ router.get("/availability", async (req, res) => {
         // Convert appEnd back to time string for nextAvailable
         const endH = Math.floor(appEnd / 60);
         const endM = appEnd % 60;
-        const ampm = endH >= 12 ? 'PM' : 'AM';
+        const ampm = endH >= 12 ? "PM" : "AM";
         const formattedH = endH % 12 || 12;
-        const formattedTime = `${formattedH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')} ${ampm}`;
+        const formattedTime = `${formattedH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")} ${ampm}`;
 
         return {
           ...staff.toObject(),
           roleTitle: displayRole,
           currentStatus: "busy",
           currentClient: busyApp.customerName,
-          nextAvailable: formattedTime
+          nextAvailable: formattedTime,
         };
       }
 
@@ -156,15 +192,16 @@ router.get("/availability", async (req, res) => {
         ...staff.toObject(),
         roleTitle: displayRole,
         currentStatus: "available",
-        nextAvailable: "Now"
+        nextAvailable: "Now",
       };
     });
 
     res.json(staffWithStatus);
-
   } catch (err) {
     console.error("Error fetching staff availability:", err);
-    res.status(500).json({ message: err.message || "Error fetching availability" });
+    res
+      .status(500)
+      .json({ message: err.message || "Error fetching availability" });
   }
 });
 
@@ -182,7 +219,7 @@ router.get("/", async (req, res) => {
     let query = { ownerId };
 
     // Apply branch filtering logic
-    if (role && role.toLowerCase() === 'receptionist') {
+    if (role && role.toLowerCase() === "receptionist") {
       // Receptionists only see staff from their own branch
       query.branchId = sessionBranchId;
     } else if (queryBranchId && queryBranchId !== "all") {

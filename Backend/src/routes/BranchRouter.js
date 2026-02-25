@@ -6,6 +6,19 @@ import { validateBranch } from "../middlewares/BranchValidation.js";
 
 const router = express.Router();
 
+/* PUBLIC: Get single branch by ID (no auth needed) */
+router.get("/public/:id", async (req, res) => {
+  try {
+    const branch = await Branch.findById(req.params.id).select(
+      "name branchType address city state zipCode phone email openingTime closingTime workingDays"
+    );
+    if (!branch) return res.status(404).json({ message: "Branch not found" });
+    res.json(branch);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 /* PUBLIC: List active branches by type (no auth needed) */
 router.get("/public", async (req, res) => {
   try {
