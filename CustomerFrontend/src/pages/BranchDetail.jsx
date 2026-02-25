@@ -50,7 +50,10 @@ const BranchDetail = () => {
           axios.get(`/api/categories/public/${id}`),
         ]);
         setBranch(branchRes.data);
-        setCategories(catRes.data.categories || []);
+        const branchCategories = (catRes.data.categories || []).filter(
+          (cat) => String(cat.branchId) === String(id),
+        );
+        setCategories(branchCategories);
 
         // Fetch all services initially
         const svcRes = await axios.get(`/api/services/public?branchId=${id}`);

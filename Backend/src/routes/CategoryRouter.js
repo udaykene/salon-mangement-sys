@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import {
   getCategories,
   createCategory,
@@ -11,7 +12,17 @@ const router = express.Router();
 /* PUBLIC: Get categories for a branch (no auth) */
 router.get("/public/:branchId", async (req, res) => {
   try {
-    const categories = await Category.find({ branchId: req.params.branchId });
+    const { branchId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(branchId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid branchId" });
+    }
+
+    const categories = await Category.find({ branchId })
+      .select("name branchId")
+      .sort({ name: 1 })
+      .lean();
     res.json({ success: true, categories });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
