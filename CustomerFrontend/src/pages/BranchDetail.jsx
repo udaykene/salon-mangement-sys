@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
@@ -22,6 +22,9 @@ const BranchDetail = () => {
   const [selectedTime, setSelectedTime] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [highlightConfirm, setHighlightConfirm] = useState(false);
+  const checkoutRef = useRef(null);
+  const highlightTimerRef = useRef(null);
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -107,6 +110,34 @@ const BranchDetail = () => {
     fetchSlots();
   }, [id, selectedDate, selectedStaff]);
 
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleSelectTime = (time) => {
+    setSelectedTime(time);
+
+    if (checkoutRef.current) {
+      checkoutRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+        inline: "nearest",
+      });
+    }
+
+    setHighlightConfirm(true);
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightConfirm(false);
+    }, 2200);
+  };
+
   const handleBooking = async (e) => {
     e.preventDefault();
     if (!selectedService || !selectedDate || !selectedTime) {
@@ -175,6 +206,16 @@ const BranchDetail = () => {
           background: #f43f5e;
           font-size: 12px;
           font-weight: 700;
+        }
+        .checkout-sticky {
+          position: static;
+        }
+        @media (min-width: 1024px) {
+          .checkout-sticky {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 6rem;
+          }
         }
       `}</style>
 
@@ -261,7 +302,7 @@ const BranchDetail = () => {
         </div>
       </div>
 
-      <div className="mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-3 gap-10 max-w-7xl">
+      <div className="mx-auto px-6 mt-12 grid grid-cols-1 lg:grid-cols-3 lg:items-start gap-10 max-w-7xl">
         {/* Left Column: Booking Flow (2/3) */}
         <div className="lg:col-span-2 space-y-12">
           {/* Step 1: Category Selection */}
@@ -452,7 +493,7 @@ const BranchDetail = () => {
                         <button
                           key={slot.time}
                           disabled={!slot.available}
-                          onClick={() => setSelectedTime(slot.time)}
+                          onClick={() => handleSelectTime(slot.time)}
                           className={`px-2 py-2 rounded-xl text-xs font-medium transition-all ${
                             !slot.available
                               ? "bg-white/2 text-white/10 cursor-not-allowed"
@@ -477,8 +518,8 @@ const BranchDetail = () => {
         </div>
 
         {/* Right Column: Checkout Sidebar (1/3) */}
-        <div className="lg:col-span-1">
-          <div className="glass-card rounded-3xl p-8 sticky top-24">
+        <div ref={checkoutRef} className="lg:col-span-1 checkout-sticky">
+          <div className="glass-card rounded-3xl p-8">
             <h2
               className="text-xl font-bold mb-6"
               style={{ fontFamily: "'Fraunces', serif" }}
@@ -549,7 +590,11 @@ const BranchDetail = () => {
               <button
                 type="submit"
                 disabled={bookingLoading || !selectedService || !selectedTime}
-                className="w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-xl shadow-rose-500/20 transition-all flex items-center justify-center gap-2"
+                className={`w-full py-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 disabled:opacity-30 disabled:cursor-not-allowed text-white font-bold rounded-2xl shadow-xl shadow-rose-500/20 transition-all flex items-center justify-center gap-2 ${
+                  highlightConfirm
+                    ? "ring-2 ring-rose-300/80 shadow-[0_0_36px_rgba(244,63,94,0.45)] animate-pulse"
+                    : ""
+                }`}
               >
                 {bookingLoading ? "Processing..." : "Confirm Booking"}
                 {!bookingLoading && (
