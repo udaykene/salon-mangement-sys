@@ -1,9 +1,12 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const FONT_STYLE = { fontFamily: "'DM Sans', sans-serif" };
 
 const HomePage = () => {
+  const navigate = useNavigate();
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+
   const services = [
     {
       icon: "✂️",
@@ -64,6 +67,32 @@ const HomePage = () => {
       rating: 5,
     },
   ];
+
+  useEffect(() => {
+    if (!bookingModalOpen) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setBookingModalOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [bookingModalOpen]);
+
+  const openBookingModal = () => setBookingModalOpen(true);
+  const closeBookingModal = () => setBookingModalOpen(false);
+  const handleBookingChoice = (type) => {
+    closeBookingModal();
+    navigate(type === "salons" ? "/salons" : "/spas");
+  };
 
   return (
     <div className="bg-[#0d0d0f] w-full overflow-x-hidden" style={FONT_STYLE}>
@@ -148,12 +177,13 @@ const HomePage = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/book-appointment"
+            <button
+              type="button"
+              onClick={openBookingModal}
               className="px-8 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-sm font-semibold rounded-xl shadow-xl shadow-rose-500/20 transition-all"
             >
               Book Appointment →
-            </Link>
+            </button>
             <Link
               to="/services"
               className="px-8 py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-white/70 text-sm font-semibold rounded-xl transition-all"
@@ -275,12 +305,13 @@ const HomePage = () => {
             First-time visitors enjoy 20% off any service. Experience the
             difference that professional care makes.
           </p>
-          <Link
-            to="/book-appointment"
-            className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-sm font-semibold rounded-xl shadow-xl shadow-rose-500/20 transition-all"
-          >
-            Claim Your Discount →
-          </Link>
+          <button
+              type="button"
+              onClick={openBookingModal}
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-sm font-semibold rounded-xl shadow-xl shadow-rose-500/20 transition-all"
+            >
+              Claim Your Discount →
+            </button>
         </div>
       </section>
 
@@ -351,12 +382,13 @@ const HomePage = () => {
             today. Your transformation awaits.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              to="/book-appointment"
+            <button
+              type="button"
+              onClick={openBookingModal}
               className="px-8 py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-sm font-semibold rounded-xl shadow-xl shadow-rose-500/20 transition-all"
             >
               Book Appointment
-            </Link>
+            </button>
             <Link
               to="/contact"
               className="px-8 py-3.5 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white text-white/70 text-sm font-semibold rounded-xl transition-all"
@@ -366,8 +398,83 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {bookingModalOpen && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm p-4 flex items-center justify-center"
+          onClick={closeBookingModal}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl border border-white/10 bg-[#141416]/95 shadow-2xl shadow-black/50 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-white/8 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-rose-400 text-xs tracking-[0.18em] uppercase font-semibold">
+                  Book Appointment
+                </p>
+                <h3
+                  className="text-white text-2xl mt-1"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  Choose Destination
+                </h3>
+                <p className="text-white/45 text-sm mt-2">
+                  Select where you want to book your appointment.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeBookingModal}
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Close booking options"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => handleBookingChoice("salons")}
+                className="rounded-2xl border border-white/10 bg-white/3 hover:bg-rose-500/10 hover:border-rose-500/40 p-5 text-left transition-all"
+              >
+                <div className="text-2xl mb-3">Salon</div>
+                <div
+                  className="text-white text-lg font-semibold"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  Salons
+                </div>
+                <div className="text-white/45 text-sm mt-1">
+                  Hair, styling, color and beauty services.
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleBookingChoice("spas")}
+                className="rounded-2xl border border-white/10 bg-white/3 hover:bg-pink-500/10 hover:border-pink-500/40 p-5 text-left transition-all"
+              >
+                <div className="text-2xl mb-3">Spa</div>
+                <div
+                  className="text-white text-lg font-semibold"
+                  style={{ fontFamily: "'Fraunces', serif" }}
+                >
+                  Spas
+                </div>
+                <div className="text-white/45 text-sm mt-1">
+                  Relaxation, wellness and rejuvenation treatments.
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default HomePage;
+
+
