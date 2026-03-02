@@ -10,7 +10,7 @@ const SalonAdminRevenue = () => {
     try {
       // Admin fetches all branches by default (no branchId param)
       const { data } = await axios.get(
-        `http://localhost:3000/api/reports/summary?period=${selectedPeriod}`,
+        `/api/reports/summary?period=${selectedPeriod}`,
       );
       setReportData(data);
     } catch (error) {
@@ -322,3 +322,4 @@ const SalonAdminRevenue = () => {
 };
 
 export default SalonAdminRevenue;
+

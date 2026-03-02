@@ -92,7 +92,7 @@ const AppointmentForm = ({
 
       try {
         const { data } = await axios.get(
-          `http://localhost:3000/api/clients?branchId=${formData.branchId}`,
+          `/api/clients?branchId=${formData.branchId}`,
         );
         setClients(data);
       } catch (err) {
@@ -108,7 +108,7 @@ const AppointmentForm = ({
       const fetchCats = async () => {
         try {
           const { data } = await axios.get(
-            `http://localhost:3000/api/categories/${formData.branchId}`,
+            `/api/categories/${formData.branchId}`,
           );
           setCategories(data.success ? data.categories : []);
         } catch (err) {
@@ -130,7 +130,7 @@ const AppointmentForm = ({
         try {
           // If formData.category is ID (which it should be from select)
           const { data } = await axios.get(
-            `http://localhost:3000/api/services?branchId=${formData.branchId}&category=${formData.category}`,
+            `/api/services?branchId=${formData.branchId}&category=${formData.category}`,
           );
           if (data.success) {
             setFilteredServices(data.services);
@@ -194,14 +194,14 @@ const AppointmentForm = ({
       };
 
       if (mode === "create") {
-        await axios.post("http://localhost:3000/api/appointments", {
+        await axios.post("/api/appointments", {
           ...payload,
           status: "pending",
         });
         alert("Appointment created successfully");
       } else {
         await axios.put(
-          `http://localhost:3000/api/appointments/${initialData.id}`,
+          `/api/appointments/${initialData.id}`,
           payload,
         );
         alert("Appointment updated successfully");
@@ -602,3 +602,4 @@ const AppointmentForm = ({
 };
 
 export default AppointmentForm;
+

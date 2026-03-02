@@ -30,10 +30,10 @@ const AdminWalkIn = () => {
     try {
       const [aptRes, staffRes] = await Promise.all([
         axios.get(
-          `http://localhost:3000/api/appointments?branchId=${currentBranch._id}`,
+          `/api/appointments?branchId=${currentBranch._id}`,
         ),
         axios.get(
-          `http://localhost:3000/api/staff?branchId=${currentBranch._id}`,
+          `/api/staff?branchId=${currentBranch._id}`,
         ),
       ]);
 
@@ -541,3 +541,4 @@ const AdminWalkIn = () => {
 };
 
 export default AdminWalkIn;
+

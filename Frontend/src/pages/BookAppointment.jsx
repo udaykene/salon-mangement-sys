@@ -48,7 +48,7 @@ const BookAppointment = () => {
         setMessage(null);
 
         try {
-            const response = await fetch("http://localhost:3000/api/appointments", {
+            const response = await fetch("/api/appointments", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -365,3 +365,4 @@ const BookAppointment = () => {
 };
 
 export default BookAppointment;
+

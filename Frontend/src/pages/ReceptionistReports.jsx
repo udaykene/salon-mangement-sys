@@ -15,7 +15,7 @@ const ReceptionistReports = () => {
     if (!branchId) return;
     try {
       const { data } = await axios.get(
-        `http://localhost:3000/api/reports/summary?period=${selectedPeriod}&branchId=${branchId}`,
+        `/api/reports/summary?period=${selectedPeriod}&branchId=${branchId}`,
       );
       setReportData(data);
     } catch (error) {
@@ -316,3 +316,4 @@ const ReceptionistReports = () => {
 };
 
 export default ReceptionistReports;
+

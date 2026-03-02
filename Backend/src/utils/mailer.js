@@ -85,7 +85,7 @@ export const sendWelcomeEmail = async (email, name) => {
           </ul>
         </div>
         <div style="text-align: center; margin-top: 24px;">
-          <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/services" 
+          <a href="${(process.env.CUSTOMER_APP_URL || process.env.CLIENT_URL || "http://localhost").replace(/\/$/, "")}/services" 
              style="display: inline-block; padding: 12px 32px; background: linear-gradient(135deg, #f43f5e, #ec4899); color: white; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 14px;">
             Explore Services
           </a>

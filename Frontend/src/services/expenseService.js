@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/api/expenses";
+const API_URL = "/api/expenses";
 
 // Set withCredentials to true for session-based auth
 axios.defaults.withCredentials = true;
@@ -31,3 +31,4 @@ export default {
   updateExpense,
   deleteExpense,
 };
+

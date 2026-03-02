@@ -38,7 +38,7 @@ const AdminExpenses = () => {
   const fetchBranches = async () => {
     try {
       const { data } = await axios.get(
-        "http://localhost:3000/api/branches/my-branches",
+        "/api/branches/my-branches",
       );
       setBranches(data);
       if (data.length > 0) {
@@ -351,3 +351,4 @@ const AdminExpenses = () => {
 };
 
 export default AdminExpenses;
+

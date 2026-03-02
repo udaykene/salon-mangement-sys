@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 const ReceptionistAppointments = () => {
   const { user } = useAuth();
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterDate, setFilterDate] = useState("today");
+  const [filterDate, setFilterDate] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
   const [appointments, setAppointments] = useState([]);
@@ -16,6 +16,19 @@ const ReceptionistAppointments = () => {
   const [showModal, setShowModal] = useState(false);
   const [mode, setMode] = useState("create"); // 'create', 'edit', 'view'
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+
+  const toLocalDateString = (value) => {
+    if (!value) return "";
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   const fetchAppointments = async () => {
     // Ensure we have a branchId.
@@ -29,20 +42,20 @@ const ReceptionistAppointments = () => {
 
     try {
       const response = await axios.get(
-        `http://localhost:3000/api/appointments?branchId=${branchId}`,
+        `/api/appointments?branchId=${branchId}`,
       );
-      const data = response.data; // axios returns data in .data
+      const data = Array.isArray(response.data) ? response.data : []; // axios returns data in .data
 
       const formatted = data.map((apt) => ({
         id: apt._id,
-        clientName: apt.customerName,
-        customerName: apt.customerName, // For form compatibility
-        service: apt.service,
-        date: new Date(apt.date).toISOString().split("T")[0],
+        clientName: apt.customerName || "Unknown",
+        customerName: apt.customerName || "", // For form compatibility
+        service: apt.service || "",
+        date: toLocalDateString(apt.date),
         time: apt.time,
-        status: apt.status.toLowerCase(),
+        status: (apt.status || "Pending").toLowerCase(),
         type: apt.category,
-        avatar: apt.customerName.charAt(0).toUpperCase(),
+        avatar: (apt.customerName?.charAt(0) || "?").toUpperCase(),
         phone: apt.phone,
         email: apt.email,
         staff: apt.staff,
@@ -111,7 +124,7 @@ const ReceptionistAppointments = () => {
   const handleStatusChange = async (id, newStatus) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/api/appointments/${id}/status`,
+        `/api/appointments/${id}/status`,
         {
           method: "PATCH",
           headers: {
@@ -142,10 +155,10 @@ const ReceptionistAppointments = () => {
   const filtered = appointments.filter((a) => {
     const matchStatus = filterStatus === "all" || a.status === filterStatus;
 
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = toLocalDateString(new Date());
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split("T")[0];
+    const tomorrowStr = toLocalDateString(tomorrow);
 
     const matchDate =
       filterDate === "all" ||
@@ -219,7 +232,7 @@ const ReceptionistAppointments = () => {
             <p className="text-3xl font-bold text-gray-900">
               {
                 appointments.filter(
-                  (a) => a.date === new Date().toISOString().split("T")[0],
+                  (a) => a.date === toLocalDateString(new Date()),
                 ).length
               }
             </p>
@@ -521,3 +534,4 @@ const ReceptionistAppointments = () => {
 };
 
 export default ReceptionistAppointments;
+

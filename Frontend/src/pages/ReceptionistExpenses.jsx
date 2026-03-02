@@ -36,7 +36,7 @@ const ReceptionistExpenses = () => {
   const fetchBranches = async () => {
     try {
       const { data } = await axios.get(
-        "http://localhost:3000/api/branches/my-branches",
+        "/api/branches/my-branches",
       );
       setBranches(data);
     } catch (error) {
@@ -127,3 +127,4 @@ const ReceptionistExpenses = () => {
 };
 
 export default ReceptionistExpenses;
+

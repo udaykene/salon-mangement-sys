@@ -33,7 +33,7 @@ const ReceptionistWalkIns = () => {
     try {
       setLoading(true);
       const { data } = await axios.get(
-        `http://localhost:3000/api/appointments?branchId=${currentBranch._id}`,
+        `/api/appointments?branchId=${currentBranch._id}`,
       );
       // Filter for walk-ins only
       const walkInList = data
@@ -60,7 +60,7 @@ const ReceptionistWalkIns = () => {
     if (!currentBranch?._id) return;
     try {
       const { data } = await axios.get(
-        `http://localhost:3000/api/staff?branchId=${currentBranch._id}`,
+        `/api/staff?branchId=${currentBranch._id}`,
       );
       setStaffList(data);
     } catch (err) {
@@ -80,7 +80,7 @@ const ReceptionistWalkIns = () => {
         try {
           setFetchingSlots(true);
           const { data } = await axios.get(
-            `http://localhost:3000/api/appointments/available-slots?branchId=${currentBranch?._id}&date=${formData.date}&staff=${formData.staff}`,
+            `/api/appointments/available-slots?branchId=${currentBranch?._id}&date=${formData.date}&staff=${formData.staff}`,
           );
           setAvailableSlots(data);
         } catch (err) {
@@ -120,7 +120,7 @@ const ReceptionistWalkIns = () => {
         status: "Confirmed", // Walk-ins usually skip Pending
       };
 
-      await axios.post("http://localhost:3000/api/appointments", payload);
+      await axios.post("/api/appointments", payload);
 
       setFormData({
         name: "",
@@ -153,7 +153,7 @@ const ReceptionistWalkIns = () => {
 
       const backendStatus = statusMap[newStatus] || newStatus;
 
-      await axios.patch(`http://localhost:3000/api/appointments/${id}/status`, {
+      await axios.patch(`/api/appointments/${id}/status`, {
         status: backendStatus,
       });
 
@@ -574,3 +574,4 @@ const ReceptionistWalkIns = () => {
 };
 
 export default ReceptionistWalkIns;
+

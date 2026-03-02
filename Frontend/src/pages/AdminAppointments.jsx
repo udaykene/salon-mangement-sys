@@ -16,28 +16,42 @@ const SalonAdminAppointments = () => {
   const [mode, setMode] = useState("create"); // 'create', 'edit', 'view'
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
 
+  const toLocalDateString = (value) => {
+    if (!value) return "";
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return value;
+    }
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const fetchAppointments = async (branchIdOverride = null) => {
     try {
       // Use branchIdOverride if provided, otherwise use current filterBranch if not 'all'
       const branchParam =
         branchIdOverride || (filterBranch !== "all" ? filterBranch : null);
       const url = branchParam
-        ? `http://localhost:3000/api/appointments?branchId=${branchParam}`
-        : "http://localhost:3000/api/appointments";
+        ? `/api/appointments?branchId=${branchParam}`
+        : "/api/appointments";
 
       const response = await fetch(url);
       const data = await response.json();
+      const list = Array.isArray(data) ? data : [];
 
-      const formatted = data.map((apt) => ({
+      const formatted = list.map((apt) => ({
         id: apt._id,
-        clientName: apt.customerName,
-        customerName: apt.customerName, // For form compatibility
-        service: apt.service,
-        date: new Date(apt.date).toISOString().split("T")[0], // Ensure date format
+        clientName: apt.customerName || "Unknown",
+        customerName: apt.customerName || "", // For form compatibility
+        service: apt.service || "",
+        date: toLocalDateString(apt.date), // Safe date normalization
         time: apt.time,
-        status: apt.status.toLowerCase(),
+        status: (apt.status || "Pending").toLowerCase(),
         type: apt.category,
-        avatar: apt.customerName.charAt(0).toUpperCase(),
+        avatar: (apt.customerName?.charAt(0) || "?").toUpperCase(),
         phone: apt.phone,
         email: apt.email,
         staff: apt.staff,
@@ -56,7 +70,7 @@ const SalonAdminAppointments = () => {
   const fetchBranches = async () => {
     try {
       const { data } = await axios.get(
-        "http://localhost:3000/api/branches/my-branches",
+        "/api/branches/my-branches",
       );
       setBranches(data);
     } catch (error) {
@@ -108,7 +122,7 @@ const SalonAdminAppointments = () => {
   const handleStatusChange = async (id, newStatus) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/api/appointments/${id}/status`,
+        `/api/appointments/${id}/status`,
         {
           method: "PATCH",
           headers: {
@@ -458,3 +472,4 @@ const SalonAdminAppointments = () => {
 };
 
 export default SalonAdminAppointments;
+

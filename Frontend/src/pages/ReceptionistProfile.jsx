@@ -28,7 +28,7 @@ const ReceptionistProfile = () => {
     const fetchProfile = async () => {
         try {
             setIsLoading(true);
-            const { data } = await axios.get("http://localhost:3000/api/profile", {
+            const { data } = await axios.get("/api/profile", {
                 withCredentials: true,
             });
 
@@ -72,7 +72,7 @@ const ReceptionistProfile = () => {
                 joiningDate: profileData.joinDate,
             };
 
-            const { data } = await axios.put("http://localhost:3000/api/profile/receptionist", payload, {
+            const { data } = await axios.put("/api/profile/receptionist", payload, {
                 withCredentials: true,
             });
 
@@ -120,7 +120,7 @@ const ReceptionistProfile = () => {
                 password: passwordData.newPassword,
             };
 
-            await axios.put("http://localhost:3000/api/profile/receptionist", payload, {
+            await axios.put("/api/profile/receptionist", payload, {
                 withCredentials: true,
             });
 
@@ -527,3 +527,4 @@ const ReceptionistProfile = () => {
 };
 
 export default ReceptionistProfile;
+

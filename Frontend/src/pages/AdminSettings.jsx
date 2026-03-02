@@ -134,7 +134,7 @@ const AdminSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const { data } = await axios.get("http://localhost:3000/api/profile");
+      const { data } = await axios.get("/api/profile");
       if (data.profile && data.profile.salonSettings) {
         const s = data.profile.salonSettings;
         setGeneralSettings({
@@ -153,7 +153,7 @@ const AdminSettings = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await axios.put("http://localhost:3000/api/profile/salon", {
+      await axios.put("/api/profile/salon", {
         name: generalSettings.salonName,
         email: generalSettings.email,
         phone: generalSettings.phone,
@@ -905,3 +905,4 @@ const AdminSettings = () => {
 };
 
 export default AdminSettings;
+
